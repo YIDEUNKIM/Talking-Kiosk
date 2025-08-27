@@ -68,9 +68,23 @@ const MenuItem = ({ item, onClick }) => {
 
   return (
     <ItemContainer onClick={handleClick}>
-      <ItemImage>
-        {item.name.charAt(0)}
-      </ItemImage>
+      {item.image ? (
+        <img 
+          src={item.image} 
+          alt={item.name} 
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 10,
+            objectFit: 'cover',
+            flexShrink: 0
+          }}
+        />
+      ) : (
+        <ItemImage>
+          {item.name.charAt(0)}
+        </ItemImage>
+      )}
       <ItemInfo>
         <ItemName>{item.name}</ItemName>
         <ItemDescription>{item.description}</ItemDescription>

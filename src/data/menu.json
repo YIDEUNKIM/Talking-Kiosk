@@ -9,7 +9,7 @@
           "name": "아메리카노",
           "description": "깊고 진한 에스프레소와 물의 조화",
           "price": 4500,
-          "image": "/images/americano.jpg",
+          "image": "/menu_images/ico_drink1.png",
           "options": {
             "temperature": ["hot", "ice"],
             "size": ["regular", "large"],
@@ -28,7 +28,7 @@
           "name": "카페라떼",
           "description": "부드러운 우유와 에스프레소의 완벽한 조화",
           "price": 5500,
-          "image": "/images/cafelatte.jpg",
+          "image": "/menu_images/ico_drink2.png",
           "options": {
             "temperature": ["hot", "ice"],
             "size": ["regular", "large"],
