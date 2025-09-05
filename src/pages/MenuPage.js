@@ -49,6 +49,9 @@ export default function MenuPage() {
   const [cart, setCart] = useState([]);
   const [popup, setPopup] = useState(null);
 
+  // ✅ 추가: 레이어 열림/닫힘만 토글 (기본값: 열림 = 기존 UI 유지)
+  const [layerOpen, setLayerOpen] = useState(true);
+
   const total = useMemo(
     () => cart.reduce((s, it) => s + it.price * it.cnt, 0),
     [cart]
@@ -127,6 +130,7 @@ export default function MenuPage() {
     setCart([]);
     setPopup(null);
     setTabIdx(0);
+    // 레이어 상태는 건들지 않음 (UI 유지)
   };
 
   const list = CATEGORIES[tabIdx].ids.map((id) => MENU[id]);
@@ -182,9 +186,17 @@ export default function MenuPage() {
             </div>
           </div>
 
-          <div className="layer_info open">
+          {/* ✅ 여기만 클래스 토글 */}
+          <div className={`layer_info ${layerOpen ? "open" : ""}`}>
             <div className="inner_layer">
-              <a href="#toggle" className="btn_toggle"><span className="ico_cafe">레이어 열기/닫기</span></a>
+              {/* ✅ 토글 버튼만 동작 */}
+              <a
+                href="#toggle"
+                className="btn_toggle"
+                onClick={(e)=>{e.preventDefault(); setLayerOpen(v=>!v);}}
+              >
+                <span className="ico_cafe">레이어 열기/닫기</span>
+              </a>
 
               <div className="area_cart on">
                 <div className="wrap_cart">
@@ -220,7 +232,14 @@ export default function MenuPage() {
                     <a href="#cancel" className="btn_cancel" onClick={(e)=>{e.preventDefault(); resetAll();}}>전체취소</a>
                   </div>
 
-                  <a href="#pay" className="btn_pay"><span className="ico_cafe"></span>결제하기</a>
+                  {/* ✅ 결제하기: 장바구니 있으면 레이어만 열어 확인 */}
+                  <a
+                    href="#pay"
+                    className="btn_pay"
+                    onClick={(e)=>{e.preventDefault(); if (cart.length>0) setLayerOpen(true);}}
+                  >
+                    <span className="ico_cafe"></span>결제하기
+                  </a>
                 </div>
               </div>
 
