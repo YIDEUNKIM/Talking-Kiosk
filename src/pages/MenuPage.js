@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ 라우팅 훅
 import "./menu.kiosk.css";
 
 const IMG = (id) => {
@@ -48,9 +49,9 @@ export default function MenuPage() {
   const [tabIdx, setTabIdx] = useState(0);
   const [cart, setCart] = useState([]);
   const [popup, setPopup] = useState(null);
-
-  // ✅ 추가: 레이어 열림/닫힘만 토글 (기본값: 열림 = 기존 UI 유지)
   const [layerOpen, setLayerOpen] = useState(true);
+
+  const navigate = useNavigate(); // ✅ 라우팅 훅
 
   const total = useMemo(
     () => cart.reduce((s, it) => s + it.price * it.cnt, 0),
@@ -66,7 +67,12 @@ export default function MenuPage() {
       unitPrice: m.price,
       cnt: 1,
       temp: needsTemp ? "" : "",
-      needsTemp
+      needsTemp,
+      isCoffee: [1,2,3].includes(m.id),
+      size: "",
+      shot: "",
+      sweetness: "",
+      milk: ""
     });
   };
 
@@ -76,22 +82,34 @@ export default function MenuPage() {
     setPopup({ ...popup, cnt: next });
   };
 
-  const chooseTemp = (t) => {
-    if (!popup) return;
-    setPopup({ ...popup, temp: t });
-  };
+  const chooseTemp = (t) => setPopup((p)=>({...p, temp: t}));
+  const chooseSize = (v) => setPopup((p)=>({...p, size: v}));
+  const chooseShot = (v) => setPopup((p)=>({...p, shot: v}));
+  const chooseSweetness = (v) => setPopup((p)=>({...p, sweetness: v}));
+  const chooseMilk = (v) => setPopup((p)=>({...p, milk: v}));
 
   const addToCart = () => {
     if (!popup) return;
     if (popup.needsTemp && !popup.temp) return;
+    if (popup.isCoffee && (!popup.size || !popup.shot || !popup.sweetness || !popup.milk)) return;
     if (cart.length >= 3) return;
-    const existsIdx = cart.findIndex((c) => c.id === popup.id && c.temp === (popup.temp||""));
+
+    const existsIdx = cart.findIndex(
+      (c) =>
+        c.id === popup.id &&
+        c.temp === (popup.temp || "") &&
+        JSON.stringify(c.options || {}) === JSON.stringify({
+          temperature: popup.temp || "",
+          size: popup.size || "",
+          shot: popup.shot || "",
+          sweetness: popup.sweetness || "",
+          milk: popup.milk || ""
+        })
+    );
+
     if (existsIdx >= 0) {
       const next = [...cart];
-      next[existsIdx] = {
-        ...next[existsIdx],
-        cnt: next[existsIdx].cnt + popup.cnt
-      };
+      next[existsIdx] = { ...next[existsIdx], cnt: next[existsIdx].cnt + popup.cnt };
       setCart(next);
     } else {
       setCart([
@@ -101,7 +119,14 @@ export default function MenuPage() {
           name: popup.name + (popup.temp ? `(${popup.temp})` : ""),
           price: popup.unitPrice,
           cnt: popup.cnt,
-          temp: popup.temp || ""
+          temp: popup.temp || "",
+          options: {
+            temperature: popup.temp || "",
+            size: popup.size || "",
+            shot: popup.shot || "",
+            sweetness: popup.sweetness || "",
+            milk: popup.milk || ""
+          }
         }
       ]);
     }
@@ -113,24 +138,43 @@ export default function MenuPage() {
     if (next[idx].cnt > 1) next[idx].cnt -= 1;
     setCart(next);
   };
-
   const cartPlus = (idx) => {
     const next = [...cart];
     next[idx].cnt += 1;
     setCart(next);
   };
-
   const cartDelete = (idx) => {
     const next = [...cart];
     next.splice(idx,1);
     setCart(next);
   };
-
   const resetAll = () => {
     setCart([]);
     setPopup(null);
     setTabIdx(0);
-    // 레이어 상태는 건들지 않음 (UI 유지)
+  };
+
+  // ✅ 결제 페이지로 이동: 장바구니 전체를 items 배열로 전달
+  const gotoPayment = () => {
+    if (cart.length === 0) return;
+
+    const toLower = (v) => (v ? String(v).toLowerCase() : "");
+
+    const items = cart.map((c) => ({
+      id: c.id,
+      name: c.name,                 // 카트표시명 유지 (옵션은 별도 표시되므로 안전)
+      price: Number(c.price || 0),  // 단가
+      cnt: Number(c.cnt || 1),      // 수량
+      options: {
+        temperature: toLower(c.options?.temperature || c.temp || ""),
+        size:        toLower(c.options?.size || ""),
+        shot:        toLower(c.options?.shot || ""),
+        sweetness:   toLower(c.options?.sweetness || ""),
+        milk:        toLower(c.options?.milk || "")
+      }
+    }));
+
+    navigate("/payment", { state: { items } });
   };
 
   const list = CATEGORIES[tabIdx].ids.map((id) => MENU[id]);
@@ -186,10 +230,8 @@ export default function MenuPage() {
             </div>
           </div>
 
-          {/* ✅ 여기만 클래스 토글 */}
           <div className={`layer_info ${layerOpen ? "open" : ""}`}>
             <div className="inner_layer">
-              {/* ✅ 토글 버튼만 동작 */}
               <a
                 href="#toggle"
                 className="btn_toggle"
@@ -205,7 +247,7 @@ export default function MenuPage() {
                       <li key={i}><span className="ico_cafe ico_default"></span></li>
                     ))}
                     {cart.map((c, i)=>(
-                      <li key={`${c.id}-${c.temp}`}>
+                      <li key={`${c.id}-${c.temp}-${i}`}>
                         <span className="ico_cafe ico_default"></span>
                         <div className="item_menus" data-id={`id${c.id}`} data-price={c.price}>
                           <img src={IMG(c.id)} className="img_menus" alt="" />
@@ -232,18 +274,17 @@ export default function MenuPage() {
                     <a href="#cancel" className="btn_cancel" onClick={(e)=>{e.preventDefault(); resetAll();}}>전체취소</a>
                   </div>
 
-                  {/* ✅ 결제하기: 장바구니 있으면 레이어만 열어 확인 */}
+                  {/* 결제하기 → PaymentPage로 이동 */}
                   <a
                     href="#pay"
                     className="btn_pay"
-                    onClick={(e)=>{e.preventDefault(); if (cart.length>0) setLayerOpen(true);}}
+                    onClick={(e)=>{ e.preventDefault(); if (cart.length>0) gotoPayment(); }}
                   >
                     <span className="ico_cafe"></span>결제하기
                   </a>
                 </div>
               </div>
 
-              
             </div>
           </div>
 
@@ -278,12 +319,62 @@ export default function MenuPage() {
                   </div>
                 )}
 
+                {popup.isCoffee && (
+                  <>
+                    <div className="select_temp">
+                      <a href="#regular" className={popup.size === "regular" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseSize("regular");}}>레귤러</a>
+                      <a href="#large" className={popup.size === "large" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseSize("large");}}>라지</a>
+                    </div>
+
+                    <div className="select_temp">
+                      <a href="#single" className={popup.shot === "single" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseShot("single");}}>싱글샷</a>
+                      <a href="#double" className={popup.shot === "double" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseShot("double");}}>더블샷</a>
+                    </div>
+
+                    <div className="select_temp">
+                      <a href="#none" className={popup.sweetness === "none" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseSweetness("none");}}>당도 없음</a>
+                      <a href="#less" className={popup.sweetness === "less" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseSweetness("less");}}>당도 적게</a>
+                      <a href="#normal" className={popup.sweetness === "normal" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseSweetness("normal");}}>당도 보통</a>
+                      <a href="#more" className={popup.sweetness === "more" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseSweetness("more");}}>당도 많이</a>
+                    </div>
+
+                    <div className="select_temp">
+                      <a href="#whole" className={popup.milk === "whole" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseMilk("whole");}}>전지유</a>
+                      <a href="#skim" className={popup.milk === "skim" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseMilk("skim");}}>저지방유</a>
+                      <a href="#oat" className={popup.milk === "oat" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseMilk("oat");}}>오트밀크</a>
+                      <a href="#almond" className={popup.milk === "almond" ? "on":""}
+                         onClick={(e)=>{e.preventDefault(); chooseMilk("almond");}}>아몬드밀크</a>
+                    </div>
+                  </>
+                )}
+
                 <div className="group_btn">
                   <a href="#cancel" className="btn_comm btn_comm2" onClick={(e)=>{e.preventDefault(); setPopup(null);}}>취소</a>
                   <a
                     href="#ok"
-                    className={`btn_comm btn_comm1 ${popup.needsTemp && !popup.temp ? "disabled":""}`}
-                    onClick={(e)=>{e.preventDefault(); if(!(popup.needsTemp && !popup.temp)) addToCart();}}
+                    className={`btn_comm btn_comm1 ${
+                      (popup.needsTemp && !popup.temp) ||
+                      (popup.isCoffee && (!popup.size || !popup.shot || !popup.sweetness || !popup.milk))
+                        ? "disabled":""
+                    }`}
+                    onClick={(e)=>{
+                      e.preventDefault();
+                      const invalid =
+                        (popup.needsTemp && !popup.temp) ||
+                        (popup.isCoffee && (!popup.size || !popup.shot || !popup.sweetness || !popup.milk));
+                      if (!invalid) addToCart();
+                    }}
                   >
                     선택완료
                   </a>
