@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./menu.kiosk.css";
+import VoiceButton from "../components/VoiceButton";
+import { useVoice } from "../contexts/VoiceContext";
 
 const IMG = (id) => {
   const map = {
@@ -45,6 +48,8 @@ const MENU = {
 };
 
 export default function MenuPage() {
+  const navigate = useNavigate();
+  const { transcript, speak, isListening } = useVoice();
   const [tabIdx, setTabIdx] = useState(0);
   const [cart, setCart] = useState([]);
   const [popup, setPopup] = useState(null);
@@ -232,11 +237,11 @@ export default function MenuPage() {
                     <a href="#cancel" className="btn_cancel" onClick={(e)=>{e.preventDefault(); resetAll();}}>전체취소</a>
                   </div>
 
-                  {/* ✅ 결제하기: 장바구니 있으면 레이어만 열어 확인 */}
+                  {/* ✅ 결제하기: 장바구니 있으면 결제페이지로 이동 */}
                   <a
                     href="#pay"
                     className="btn_pay"
-                    onClick={(e)=>{e.preventDefault(); if (cart.length>0) setLayerOpen(true);}}
+                    onClick={(e)=>{e.preventDefault(); if (cart.length>0) navigate('/payment', { state: { cart, total } });}}
                   >
                     <span className="ico_cafe"></span>결제하기
                   </a>
@@ -308,6 +313,11 @@ export default function MenuPage() {
             </div>
           )}
         </main>
+      </div>
+      
+      {/* 음성 버튼 추가 */}
+      <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000 }}>
+        <VoiceButton />
       </div>
     </div>
   );

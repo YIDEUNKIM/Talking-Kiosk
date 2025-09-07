@@ -47,6 +47,17 @@ header h1{font-size:24px;line-height:30px;color:#fff}
 .paging_cafe .ico_page{overflow:hidden;width:13px;height:13px;border-radius:50%;font-size:1px;line-height:0;color:transparent;background:#c3c3c3;pointer-events:none}
 .paging_cafe .active{background:var(--point-color)}
 
+/* 결제페이지 및 영수증페이지 스타일 */
+.link_item.selected {
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(46, 213, 115, 0.3);
+}
+
+.link_item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
 /* 하단 레이어 */
 .layer_info{display:flex;flex-direction:column;flex-wrap:wrap;align-items:center;justify-content:flex-end;position:fixed;bottom:0;left:0;right:0}
 .layer_info.open{top:0;background:rgba(0,0,0,.15)}
