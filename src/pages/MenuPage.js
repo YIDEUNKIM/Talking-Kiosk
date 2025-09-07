@@ -243,23 +243,7 @@ export default function MenuPage() {
                 </div>
               </div>
 
-              <div className="area_options"></div>
-              <div className="result_area">
-                <dl className="list_result">
-                  <dt>주문 금액</dt>
-                  <dd className="txt_red">{fmt(total)}원</dd>
-                  <dt>할인 금액</dt>
-                  <dd className="txt_blue">0원</dd>
-                  <dt>결제 금액</dt>
-                  <dd>{fmt(total)}원</dd>
-                </dl>
-
-                <div className="group_btn">
-                  <a href="#all-cancel" className="btn_comm btn_comm3" onClick={(e)=>{e.preventDefault(); resetAll();}}>전체취소</a>
-                  <a href="#prev2" className="btn_comm btn_comm2">이전</a>
-                  <a href="#next2" className="btn_comm btn_comm1">다음</a>
-                </div>
-              </div>
+              
             </div>
           </div>
 

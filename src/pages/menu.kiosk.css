@@ -116,3 +116,21 @@ header h1{font-size:24px;line-height:30px;color:#fff}
 .result_area .group_btn{gap:19px;justify-content:flex-start}
 .result_area .group_btn .btn_comm{flex:0 0 240px;min-width:0}
 .result_area .group_btn .btn_comm3{flex:0 0 190px}
+
+/* 페이지 전체 스크롤 활성화 */
+.cont_menus {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* 하단 패널 높이만큼 페이지에 여백 확보 */
+:root {
+  --paylayer-h: 160px;  /* 패널 높이 (필요시 조절) */
+}
+
+main {
+  padding-bottom: calc(var(--paylayer-h) + 16px) !important;
+}
+.area_cart {
+  height: var(--paylayer-h) !important;
+}
