@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 모델 테스트 - Gemma</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .quick-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .quick-test-btn {
+            background: #28a745;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+        .quick-test-btn:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI 모델 테스트 - Gemma</h1>
+        
+        <div class="status" id="connectionStatus">
+            서버 연결 확인 중...
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 서버 설정</h3>
+            <div class="input-group">
+                <label for="serverUrl">서버 URL:</label>
+                <input type="text" id="serverUrl" value="http://localhost:3001" placeholder="http://localhost:3001">
+            </div>
+            <button onclick="checkConnection()">연결 확인</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 AI 모델 테스트</h3>
+            <div class="input-group">
+                <label for="testText">테스트 텍스트:</label>
+                <textarea id="testText" placeholder="아메리카노 한 잔 주세요">아메리카노 한 잔 주세요</textarea>
+            </div>
+            <button onclick="testAI()" id="testBtn">AI 분석 테스트</button>
+            <button onclick="clearResults()">결과 지우기</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>⚡ 빠른 테스트</h3>
+            <div class="quick-tests">
+                <button class="quick-test-btn" onclick="quickTest('아메리카노 한 잔 주세요')">아메리카노 한 잔</button>
+                <button class="quick-test-btn" onclick="quickTest('카페라떼 두 잔')">카페라떼 두 잔</button>
+                <button class="quick-test-btn" onclick="quickTest('아이스 아메리카노')">아이스 아메리카노</button>
+                <button class="quick-test-btn" onclick="quickTest('뜨거운 카페라떼 라지')">뜨거운 라지</button>
+                <button class="quick-test-btn" onclick="quickTest('샷 추가한 아메리카노')">샷 추가</button>
+                <button class="quick-test-btn" onclick="quickTest('카드로 결제해주세요')">카드 결제</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 테스트 결과</h3>
+            <div id="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 콘솔 로그</h3>
+            <div class="log" id="log"></div>
+            <button onclick="clearLog()">로그 지우기</button>
+        </div>
+    </div>
+
+    <script>
+        let serverUrl = 'http://localhost:3001';
+        
+        // 로그 함수
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const log = document.getElementById('log');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logEntry.style.color = type === 'error' ? '#ff4757' : type === 'success' ? '#2ed573' : '#0f0';
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+            
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        // 서버 연결 확인
+        async function checkConnection() {
+            serverUrl = document.getElementById('serverUrl').value;
+            const statusDiv = document.getElementById('connectionStatus');
+            
+            try {
+                addLog('🔍 서버 연결 확인 중...', 'info');
+                const response = await fetch(`${serverUrl}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'OK') {
+                    statusDiv.textContent = '✅ 서버 연결 성공';
+                    statusDiv.className = 'status connected';
+                    addLog('✅ 서버 연결 성공', 'success');
+                    
+                    // 음성 처리 상태도 확인
+                    try {
+                        const voiceResponse = await fetch(`${serverUrl}/api/voice/status`);
+                        const voiceData = await voiceResponse.json();
+                        addLog('✅ 음성 처리 서비스 활성화', 'success');
+                        
+                        // AI 서비스 상태도 확인
+                        const aiResponse = await fetch(`${serverUrl}/api/voice/ai-status`);
+                        const aiData = await aiResponse.json();
+                        if (aiData.success) {
+                            const aiStatus = aiData.data;
+                            addLog(`✅ AI 서비스 상태: ${aiStatus.isReady ? '준비됨' : '준비 안됨'} (${aiStatus.model})`, 'success');
+                        }
+                    } catch (error) {
+                        addLog('⚠️ 서비스 상태 확인 실패', 'error');
+                    }
+                } else {
+                    throw new Error('서버 상태가 정상이 아님');
+                }
+            } catch (error) {
+                statusDiv.textContent = '❌ 서버 연결 실패';
+                statusDiv.className = 'status disconnected';
+                addLog(`❌ 서버 연결 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        // AI 테스트
+        async function testAI() {
+            const testText = document.getElementById('testText').value;
+            const testBtn = document.getElementById('testBtn');
+            const resultsDiv = document.getElementById('results');
+            
+            if (!testText.trim()) {
+                addLog('❌ 테스트 텍스트를 입력해주세요', 'error');
+                return;
+            }
+            
+            testBtn.disabled = true;
+            testBtn.textContent = '테스트 중...';
+            
+            try {
+                addLog(`🧪 AI 테스트 시작: "${testText}"`, 'info');
+                const startTime = Date.now();
+                
+                const response = await fetch(`${serverUrl}/api/voice/test-ai`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: testText })
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog(`✅ AI 테스트 성공 (${duration}ms)`, 'success');
+                    
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ 테스트 성공 (${duration}ms)</h4>
+                        <p><strong>입력:</strong> ${data.data.input}</p>
+                        <p><strong>의도:</strong> ${data.data.analysis.intent}</p>
+                        <p><strong>아이템 수:</strong> ${data.data.analysis.items.length}</p>
+                        <p><strong>총 가격:</strong> ${data.data.analysis.totalPrice}원</p>
+                        <p><strong>응답:</strong> ${data.data.analysis.response}</p>
+                        <p><strong>다음 액션:</strong> ${data.data.analysis.nextAction}</p>
+                        <details>
+                            <summary>상세 결과</summary>
+                            <pre>${JSON.stringify(data.data.analysis, null, 2)}</pre>
+                        </details>
+                    `;
+                    resultsDiv.appendChild(resultDiv);
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '테스트 실패');
+                }
+            } catch (error) {
+                addLog(`❌ AI 테스트 실패: ${error.message}`, 'error');
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ 테스트 실패</h4>
+                    <p><strong>입력:</strong> ${testText}</p>
+                    <p><strong>오류:</strong> ${error.message}</p>
+                `;
+                resultsDiv.appendChild(resultDiv);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'AI 분석 테스트';
+            }
+        }
+        
+        // 빠른 테스트
+        function quickTest(text) {
+            document.getElementById('testText').value = text;
+            testAI();
+        }
+        
+        // 결과 지우기
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            addLog('🧹 테스트 결과 지움', 'info');
+        }
+        
+        // 로그 지우기
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // 페이지 로드 시 연결 확인
+        window.addEventListener('load', () => {
+            addLog('🚀 AI 테스트 페이지 로드됨', 'success');
+            checkConnection();
+        });
+    </script>
+</body>
+</html>

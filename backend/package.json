@@ -1,0 +1,50 @@
+{
+  "name": "talking-kiosk-backend",
+  "version": "1.0.0",
+  "description": "음성 지원 키오스크 백엔드 서버",
+  "main": "server.js",
+  "scripts": {
+    "start": "node start.js",
+    "dev": "nodemon start.js",
+    "test": "jest",
+    "setup": "node setup.js",
+    "setup-api": "node setup-api-key.js",
+    "diagnose": "node diagnose-api.js",
+    "test-ai": "node test-ai.js",
+    "test-gemma": "node test-gemma.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@huggingface/inference": "^4.7.1",
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "form-data": "^4.0.0",
+    "fs-extra": "^11.1.1",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "path": "^0.12.7",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3"
+  },
+  "keywords": [
+    "kiosk",
+    "voice",
+    "ai",
+    "nodejs",
+    "express"
+  ],
+  "author": "Talking Kiosk Team",
+  "license": "MIT"
+}

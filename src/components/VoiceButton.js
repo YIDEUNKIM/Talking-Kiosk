@@ -95,11 +95,15 @@ const VoiceButton = () => {
   const { isListening, startListening, stopListening, speak } = useVoice();
 
   const handleClick = () => {
+    console.log('🖱️ 음성 버튼 클릭됨, 현재 상태:', isListening ? '듣는 중' : '대기 중');
     if (isListening) {
+      console.log('⏹️ 음성 인식 중지 요청');
       stopListening();
     } else {
+      console.log('▶️ 음성 인식 시작 요청');
       speak('말씀하세요, 듣고 있습니다.');
       setTimeout(() => {
+        console.log('⏰ 1초 후 음성 인식 시작');
         startListening();
       }, 1000);
     }

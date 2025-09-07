@@ -1,0 +1,58 @@
+# 서버 설정
+NODE_ENV=development
+PORT=3001
+HOST=localhost
+
+# 데이터베이스 설정
+DB_TYPE=sqlite
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=talking_kiosk
+DB_USER=root
+DB_PASSWORD=
+DB_PATH=./database/kiosk.db
+
+# JWT 설정
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRES_IN=24h
+
+# AI 모델 설정
+AI_MODEL_PROVIDER=huggingface
+HUGGINGFACE_API_KEY=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
+AI_MODEL_NAME=google/gemma-3-4b-it
+
+# 음성 처리 설정
+VOICE_TIMEOUT=10000
+VOICE_LANGUAGE=ko-KR
+TTS_VOICE=ko-KR-Wavenet-A
+
+# Socket.io 설정
+SOCKET_CORS_ORIGIN=http://localhost:3000
+SOCKET_PING_TIMEOUT=60000
+SOCKET_PING_INTERVAL=25000
+
+# 로깅 설정
+LOG_LEVEL=info
+LOG_FILE=./logs/app.log
+LOG_MAX_SIZE=10m
+LOG_MAX_FILES=5
+
+# 레이트 리미팅
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# 파일 업로드 설정
+MAX_FILE_SIZE=10485760
+UPLOAD_PATH=./uploads
+
+# 보안 설정
+BCRYPT_ROUNDS=12
+SESSION_SECRET=your-session-secret-here
+
+# 외부 API 설정
+PAYMENT_API_URL=https://api.payment-provider.com
+PAYMENT_API_KEY=your-payment-api-key
+
+# 모니터링 설정
+ENABLE_METRICS=true
+METRICS_PORT=9090

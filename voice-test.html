@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>음성 인식 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .voice-button {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: none;
+            background: #2ed573;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+        .voice-button:hover {
+            transform: scale(1.1);
+        }
+        .voice-button.listening {
+            background: #ff4757;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: #e8f4fd;
+        }
+        .transcript {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            min-height: 50px;
+            border-left: 4px solid #007bff;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .command-result {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 음성 인식 테스트</h1>
+        
+        <div class="status" id="status">
+            음성 인식을 시작하려면 버튼을 클릭하세요
+        </div>
+        
+        <button class="voice-button" id="voiceButton">
+            🎤
+        </button>
+        
+        <div class="transcript" id="transcript">
+            인식된 음성이 여기에 표시됩니다...
+        </div>
+        
+        <div class="command-result" id="commandResult">
+            명령 처리 결과가 여기에 표시됩니다...
+        </div>
+        
+        <h3>📋 테스트 명령어</h3>
+        <ul>
+            <li>"아메리카노 한 잔 주세요"</li>
+            <li>"카페라떼 두 잔"</li>
+            <li>"아이스 아메리카노"</li>
+            <li>"뜨거운 카페라떼"</li>
+            <li>"라지 사이즈로"</li>
+            <li>"샷 추가"</li>
+            <li>"카드 결제"</li>
+        </ul>
+        
+        <h3>📊 콘솔 로그</h3>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // 음성 인식 객체
+        let recognition = null;
+        let isListening = false;
+        
+        // DOM 요소
+        const voiceButton = document.getElementById('voiceButton');
+        const status = document.getElementById('status');
+        const transcript = document.getElementById('transcript');
+        const commandResult = document.getElementById('commandResult');
+        const log = document.getElementById('log');
+        
+        // 로그 함수
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logEntry.style.color = type === 'error' ? '#ff4757' : type === 'success' ? '#2ed573' : '#0f0';
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+            
+            // 콘솔에도 출력
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        // 음성 인식 초기화
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'ko-KR';
+                
+                recognition.onstart = () => {
+                    addLog('🎤 음성 인식 시작됨', 'success');
+                    isListening = true;
+                    voiceButton.classList.add('listening');
+                    status.textContent = '듣고 있습니다... 말씀해주세요';
+                };
+                
+                recognition.onresult = (event) => {
+                    const result = event.results[0][0].transcript;
+                    const confidence = event.results[0][0].confidence;
+                    
+                    addLog(`🎯 음성 인식 결과: "${result}"`, 'success');
+                    addLog(`📊 인식 신뢰도: ${(confidence * 100).toFixed(1)}%`, 'info');
+                    
+                    transcript.textContent = result;
+                    processVoiceCommand(result);
+                };
+                
+                recognition.onerror = (event) => {
+                    addLog(`❌ 음성 인식 오류: ${event.error}`, 'error');
+                    isListening = false;
+                    voiceButton.classList.remove('listening');
+                    status.textContent = '오류가 발생했습니다. 다시 시도해주세요';
+                };
+                
+                recognition.onend = () => {
+                    addLog('🔚 음성 인식 종료됨', 'info');
+                    isListening = false;
+                    voiceButton.classList.remove('listening');
+                    status.textContent = '음성 인식을 시작하려면 버튼을 클릭하세요';
+                };
+                
+                addLog('✅ 음성 인식 초기화 완료', 'success');
+                return true;
+            } else {
+                addLog('❌ 음성 인식이 지원되지 않습니다', 'error');
+                status.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다';
+                return false;
+            }
+        }
+        
+        // 음성 명령 처리
+        function processVoiceCommand(command) {
+            addLog(`🧠 음성 명령 처리 시작: "${command}"`, 'info');
+            
+            const lowerCommand = command.toLowerCase();
+            let result = '';
+            
+            // 메뉴 관련 명령 처리
+            if (lowerCommand.includes('아메리카노')) {
+                addLog('☕ 아메리카노 주문 감지됨', 'success');
+                result = '아메리카노를 선택하셨습니다. 옵션을 선택해주세요.';
+                
+                // 수량 확인
+                if (lowerCommand.includes('한 잔') || lowerCommand.includes('1개') || lowerCommand.includes('하나')) {
+                    addLog('📊 수량: 1개', 'info');
+                } else if (lowerCommand.includes('두 잔') || lowerCommand.includes('2개') || lowerCommand.includes('둘')) {
+                    addLog('📊 수량: 2개', 'info');
+                }
+                
+            } else if (lowerCommand.includes('카페라떼') || lowerCommand.includes('라떼')) {
+                addLog('☕ 카페라떼 주문 감지됨', 'success');
+                result = '카페라떼를 선택하셨습니다. 옵션을 선택해주세요.';
+                
+            } else if (lowerCommand.includes('카푸치노')) {
+                addLog('☕ 카푸치노 주문 감지됨', 'success');
+                result = '카푸치노를 선택하셨습니다. 옵션을 선택해주세요.';
+                
+            } else if (lowerCommand.includes('모카')) {
+                addLog('☕ 카페모카 주문 감지됨', 'success');
+                result = '카페모카를 선택하셨습니다. 옵션을 선택해주세요.';
+                
+            } else if (lowerCommand.includes('차가운') || lowerCommand.includes('아이스') || lowerCommand.includes('차갑게')) {
+                addLog('🧊 아이스 옵션 선택됨', 'success');
+                result = '아이스로 선택하셨습니다.';
+                
+            } else if (lowerCommand.includes('뜨거운') || lowerCommand.includes('핫') || lowerCommand.includes('뜨겁게')) {
+                addLog('🔥 핫 옵션 선택됨', 'success');
+                result = '뜨거운 것으로 선택하셨습니다.';
+                
+            } else if (lowerCommand.includes('라지') || lowerCommand.includes('큰') || lowerCommand.includes('대형')) {
+                addLog('📏 라지 사이즈 선택됨', 'success');
+                result = '라지 사이즈로 선택하셨습니다.';
+                
+            } else if (lowerCommand.includes('레귤러') || lowerCommand.includes('보통') || lowerCommand.includes('일반')) {
+                addLog('📏 레귤러 사이즈 선택됨', 'success');
+                result = '레귤러 사이즈로 선택하셨습니다.';
+                
+            } else if (lowerCommand.includes('샷 추가') || lowerCommand.includes('더블샷') || lowerCommand.includes('샷 두개')) {
+                addLog('☕ 샷 추가 선택됨', 'success');
+                result = '샷을 추가하셨습니다.';
+                
+            } else if (lowerCommand.includes('카드') || lowerCommand.includes('카드결제')) {
+                addLog('💳 카드 결제 선택됨', 'success');
+                result = '카드 결제를 선택하셨습니다.';
+                
+            } else if (lowerCommand.includes('qr') || lowerCommand.includes('큐알')) {
+                addLog('📱 QR 결제 선택됨', 'success');
+                result = 'QR 결제를 선택하셨습니다.';
+                
+            } else {
+                addLog(`❓ 인식되지 않은 명령: "${command}"`, 'error');
+                result = '죄송합니다. 다시 말씀해 주시겠어요?';
+            }
+            
+            commandResult.textContent = result;
+            addLog(`🔊 응답: "${result}"`, 'info');
+            
+            // TTS로 응답
+            speak(result);
+        }
+        
+        // TTS 함수
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                addLog(`🔊 TTS 시작: "${text}"`, 'info');
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ko-KR';
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                
+                utterance.onend = () => {
+                    addLog('🔊 TTS 완료', 'success');
+                };
+                
+                utterance.onerror = (event) => {
+                    addLog(`❌ TTS 오류: ${event.error}`, 'error');
+                };
+                
+                speechSynthesis.speak(utterance);
+            } else {
+                addLog('❌ TTS가 지원되지 않습니다', 'error');
+            }
+        }
+        
+        // 버튼 클릭 이벤트
+        voiceButton.addEventListener('click', () => {
+            if (isListening) {
+                addLog('⏹️ 음성 인식 중지 요청', 'info');
+                recognition.stop();
+            } else {
+                addLog('▶️ 음성 인식 시작 요청', 'info');
+                if (recognition) {
+                    recognition.start();
+                } else {
+                    if (initializeSpeechRecognition()) {
+                        recognition.start();
+                    }
+                }
+            }
+        });
+        
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', () => {
+            addLog('🚀 음성 인식 테스트 페이지 로드됨', 'success');
+            initializeSpeechRecognition();
+        });
+    </script>
+</body>
+</html>

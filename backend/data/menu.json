@@ -1,0 +1,291 @@
+{
+  "categories": [
+    {
+      "id": "coffee",
+      "name": "커피",
+      "items": [
+        {
+          "id": "americano",
+          "name": "아메리카노",
+          "description": "깊고 진한 에스프레소와 물의 조화",
+          "price": 4500,
+          "image": "/menu_images/ico_drink1.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "shot": ["single", "double"],
+            "sweetness": ["none", "less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "shot": "single",
+            "sweetness": "none"
+          }
+        },
+        {
+          "id": "cafelatte",
+          "name": "카페라떼",
+          "description": "부드러운 우유와 에스프레소의 완벽한 조화",
+          "price": 5500,
+          "image": "/menu_images/ico_drink2.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "shot": ["single", "double"],
+            "milk": ["whole", "skim", "oat", "almond"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "shot": "single",
+            "milk": "whole"
+          }
+        },
+        {
+          "id": "cappuccino",
+          "name": "카푸치노",
+          "description": "진한 에스프레소와 부드러운 우유 거품",
+          "price": 5500,
+          "image": "/menu_images/ico_drink1.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "shot": ["single", "double"],
+            "milk": ["whole", "skim", "oat", "almond"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "shot": "single",
+            "milk": "whole"
+          }
+        },
+        {
+          "id": "mocha",
+          "name": "카페모카",
+          "description": "초콜릿과 에스프레소의 달콤한 만남",
+          "price": 6000,
+          "image": "/menu_images/cafemoca.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "shot": ["single", "double"],
+            "milk": ["whole", "skim", "oat", "almond"],
+            "chocolate": ["milk", "dark", "white"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "shot": "single",
+            "milk": "whole",
+            "chocolate": "milk"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tea",
+      "name": "차",
+      "items": [
+        {
+          "id": "chamomile_tea",
+          "name": "캐모마일 차",
+          "description": "진정 효과가 있는 허브 차",
+          "price": 4000,
+          "image": "/menu_images/Chamomile_tea.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "sweetness": ["none", "less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "sweetness": "none"
+          }
+        },
+        {
+          "id": "peach_tea",
+          "name": "복숭아 차",
+          "description": "달콤한 복숭아 향의 차",
+          "price": 4500,
+          "image": "/menu_images/peach_tea.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "sweetness": ["none", "less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "sweetness": "normal"
+          }
+        },
+        {
+          "id": "peppermint_tea",
+          "name": "페퍼민트 차",
+          "description": "상쾌한 민트 향의 허브 차",
+          "price": 4000,
+          "image": "/menu_images/peppermint_tea.png",
+          "options": {
+            "temperature": ["hot", "ice"],
+            "size": ["regular", "large"],
+            "sweetness": ["none", "less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "temperature": "hot",
+            "size": "regular",
+            "sweetness": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "juice",
+      "name": "주스",
+      "items": [
+        {
+          "id": "kiwi_juice",
+          "name": "키위 주스",
+          "description": "비타민이 풍부한 키위 주스",
+          "price": 5000,
+          "image": "/menu_images/kiwi_juice.png",
+          "options": {
+            "size": ["regular", "large"],
+            "ice": ["none", "less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "size": "regular",
+            "ice": "normal"
+          }
+        },
+        {
+          "id": "grapefruit_ade",
+          "name": "자몽 에이드",
+          "description": "상큼한 자몽 에이드",
+          "price": 4500,
+          "image": "/menu_images/grapefruit_ade.png",
+          "options": {
+            "size": ["regular", "large"],
+            "ice": ["none", "less", "normal", "more"],
+            "sweetness": ["less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "size": "regular",
+            "ice": "normal",
+            "sweetness": "normal"
+          }
+        },
+        {
+          "id": "mango_ade",
+          "name": "망고 에이드",
+          "description": "달콤한 망고 에이드",
+          "price": 5000,
+          "image": "/menu_images/mango_ade.png",
+          "options": {
+            "size": ["regular", "large"],
+            "ice": ["none", "less", "normal", "more"],
+            "sweetness": ["less", "normal", "more"]
+          },
+          "defaultOptions": {
+            "size": "regular",
+            "ice": "normal",
+            "sweetness": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dessert",
+      "name": "디저트",
+      "items": [
+        {
+          "id": "basic_waffle",
+          "name": "기본 와플",
+          "description": "바삭한 기본 와플",
+          "price": 6000,
+          "image": "/menu_images/basic_wafle.png",
+          "options": {
+            "topping": ["none", "syrup", "cream", "both"]
+          },
+          "defaultOptions": {
+            "topping": "none"
+          }
+        },
+        {
+          "id": "cookie_waffle",
+          "name": "쿠키 와플",
+          "description": "쿠키가 들어간 특별한 와플",
+          "price": 7000,
+          "image": "/menu_images/cookie_wafle.png",
+          "options": {
+            "topping": ["none", "syrup", "cream", "both"]
+          },
+          "defaultOptions": {
+            "topping": "none"
+          }
+        },
+        {
+          "id": "cream_rollcake",
+          "name": "크림 롤케이크",
+          "description": "부드러운 크림이 가득한 롤케이크",
+          "price": 5500,
+          "image": "/menu_images/cream_rollcake.png",
+          "options": {
+            "flavor": ["vanilla", "chocolate", "strawberry"]
+          },
+          "defaultOptions": {
+            "flavor": "vanilla"
+          }
+        }
+      ]
+    }
+  ],
+  "paymentMethods": [
+    {
+      "id": "card",
+      "name": "카드 결제",
+      "description": "신용카드 또는 체크카드로 결제",
+      "icon": "💳"
+    },
+    {
+      "id": "qr",
+      "name": "QR 결제",
+      "description": "QR 코드를 통한 모바일 결제",
+      "icon": "📱"
+    },
+    {
+      "id": "cash",
+      "name": "현금 결제",
+      "description": "현금으로 직접 결제",
+      "icon": "💵"
+    }
+  ],
+  "commonOptions": {
+    "temperature": {
+      "hot": "뜨거운",
+      "ice": "아이스"
+    },
+    "size": {
+      "regular": "레귤러",
+      "large": "라지"
+    },
+    "shot": {
+      "single": "기본 샷",
+      "double": "샷 추가"
+    },
+    "milk": {
+      "whole": "일반 우유",
+      "skim": "저지방 우유",
+      "oat": "오트밀크",
+      "almond": "아몬드밀크"
+    },
+    "sweetness": {
+      "none": "무설탕",
+      "less": "덜 달게",
+      "normal": "보통",
+      "more": "더 달게"
+    }
+  }
+}
