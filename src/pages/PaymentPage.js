@@ -142,19 +142,13 @@ const Button = styled.button`
 const BackButton = styled(Button)`
   background: #6c757d;
   color: white;
-
-  &:hover {
-    background: #5a6268;
-  }
+  &:hover { background: #5a6268; }
 `;
 
 const PayButton = styled(Button)`
   background: #2ed573;
   color: white;
-
-  &:hover {
-    background: #26d0a8;
-  }
+  &:hover { background: #26d0a8; }
 `;
 
 const VoiceButtonContainer = styled.div`
@@ -172,12 +166,19 @@ const PaymentPage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { item, selectedOptions } = location.state || {};
-
-  if (!item) {
+  // ✅ 다중 아이템 수신
+  const { items } = location.state || {};
+  if (!Array.isArray(items) || items.length === 0) {
     navigate('/');
     return null;
   }
+
+  // 총액(단가×수량 합)
+  const totalPrice = items.reduce((sum, it) => {
+    const unit = Number(it.price || 0);
+    const qty  = Number(it.cnt || 1);
+    return sum + unit * qty;
+  }, 0);
 
   // 음성 인식 결과 처리
   useEffect(() => {
@@ -187,9 +188,7 @@ const PaymentPage = () => {
   }, [transcript, selectedPaymentMethod]);
 
   const handleVoicePayment = (command) => {
-    const lowerCommand = command.toLowerCase();
-    
-    // 결제 방법 찾기
+    const lowerCommand = String(command || '').toLowerCase();
     const foundPaymentMethod = menuData.paymentMethods.find(method => 
       lowerCommand.includes(method.name.toLowerCase()) ||
       lowerCommand.includes(method.id.toLowerCase())
@@ -198,10 +197,7 @@ const PaymentPage = () => {
     if (foundPaymentMethod) {
       setSelectedPaymentMethod(foundPaymentMethod);
       speak(`${foundPaymentMethod.name}을 선택하셨습니다. 결제를 진행합니다.`);
-      
-      setTimeout(() => {
-        handlePayment();
-      }, 2000);
+      setTimeout(() => { handlePayment(); }, 2000);
     } else {
       speak('해당하는 결제 방법이 없습니다. 카드 결제 또는 QR 결제 중에서 선택해주세요.');
     }
@@ -219,10 +215,10 @@ const PaymentPage = () => {
     setTimeout(() => {
       speak('결제가 완료되었습니다. 영수증을 출력합니다.');
       setTimeout(() => {
+        // ✅ 영수증 페이지로 items 그대로 전달
         navigate('/receipt', { 
           state: { 
-            item, 
-            selectedOptions, 
+            items, 
             paymentMethod: selectedPaymentMethod,
             orderNumber: generateOrderNumber()
           } 
@@ -237,33 +233,14 @@ const PaymentPage = () => {
 
   const getOptionDisplayName = (optionKey, option) => {
     const displayNames = {
-      temperature: {
-        hot: '뜨거운',
-        ice: '차가운'
-      },
-      size: {
-        regular: '레귤러',
-        large: '라지'
-      },
-      shot: {
-        single: '싱글샷',
-        double: '더블샷'
-      },
-      sweetness: {
-        none: '당도 없음',
-        less: '당도 적게',
-        normal: '당도 보통',
-        more: '당도 많이'
-      },
-      milk: {
-        whole: '전지유',
-        skim: '저지방유',
-        oat: '오트밀크',
-        almond: '아몬드밀크'
-      }
+      temperature: { hot: '뜨거운', ice: '차가운' },
+      size: { regular: '레귤러', large: '라지' },
+      shot: { single: '싱글샷', double: '더블샷' },
+      sweetness: { none: '당도 없음', less: '당도 적게', normal: '당도 보통', more: '당도 많이' },
+      milk: { whole: '전지유', skim: '저지방유', oat: '오트밀크', almond: '아몬드밀크' }
     };
-    
-    return displayNames[optionKey]?.[option] || option;
+    const v = String(option ?? '').toLowerCase();
+    return displayNames[optionKey]?.[v] || `${optionKey}: ${option ?? ''}`;
   };
 
   const handleBack = () => {
@@ -280,21 +257,33 @@ const PaymentPage = () => {
       <PaymentCard>
         <OrderSummary>
           <OrderTitle>주문 내역</OrderTitle>
-          <OrderItem>
-            <ItemName>{item.name}</ItemName>
-            <ItemPrice>{item.price.toLocaleString()}원</ItemPrice>
-          </OrderItem>
-          {Object.entries(selectedOptions).length > 0 && (
-            <OptionsList>
-              {Object.entries(selectedOptions).map(([key, value]) => (
-                <div key={key}>
-                  {getOptionDisplayName(key, value)}
-                </div>
-              ))}
-            </OptionsList>
-          )}
+
+          {/* ✅ 모든 아이템 + 옵션 표시 */}
+          {items.map((it, idx) => (
+            <React.Fragment key={`${it.id}-${idx}`}>
+              <OrderItem>
+                <ItemName>
+                  {it.name}{Number(it.cnt || 1) > 1 ? ` x${it.cnt}` : ''}
+                </ItemName>
+                <ItemPrice>
+                  {(Number(it.price || 0) * Number(it.cnt || 1)).toLocaleString()}원
+                </ItemPrice>
+              </OrderItem>
+
+              {it.options && Object.keys(it.options).length > 0 && (
+                <OptionsList>
+                  {Object.entries(it.options).map(([key, value]) => (
+                    <div key={key}>
+                      {getOptionDisplayName(key, value)}
+                    </div>
+                  ))}
+                </OptionsList>
+              )}
+            </React.Fragment>
+          ))}
+
           <TotalPrice>
-            <TotalAmount>총 금액: {item.price.toLocaleString()}원</TotalAmount>
+            <TotalAmount>총 금액: {totalPrice.toLocaleString()}원</TotalAmount>
           </TotalPrice>
         </OrderSummary>
 
@@ -334,4 +323,4 @@ const PaymentPage = () => {
   );
 };
 
-export default PaymentPage; 
+export default PaymentPage;
