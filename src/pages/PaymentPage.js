@@ -1,28 +1,162 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
+import menuData from '../data/menu.json';
 import VoiceButton from '../components/VoiceButton';
 import { useVoice } from '../contexts/VoiceContext';
-import './menu.kiosk.css';
 
-const IMG = (id) => {
-  const map = {
-    1: "ico_drink1.png",          // 아메리카노
-    2: "ico_drink2.png",          // 카페라떼
-    3: "cafemoca.png",            // 카페모카
-    4: "grapefruit_ade.png",      // 자몽에이드
-    5: "mango_ade.png",           // 망고에이드
-    6: "kiwi_juice.png",          // 키위주스
-    7: "peppermint_tea.png",      // 페퍼민트
-    8: "Chamomile_tea.png",       // 캐모마일
-    9: "peach_tea.png",           // 복숭아티
-    10: "cream_rollcake.png",     // 생크림 롤케이크
-    11: "cookie_wafle.png",       // 쿠키 크루와상 와플
-    12: "basic_wafle.png",        // 크루와상 와플
-  };
-  return `${process.env.PUBLIC_URL}/menu_images/${map[id]}`;
-};
+const PaymentContainer = styled.div`
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
 
-const fmt = (n) => Number(n).toLocaleString("ko-KR");
+const PaymentCard = styled.div`
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+`;
+
+const OrderSummary = styled.div`
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 15px;
+`;
+
+const OrderTitle = styled.h2`
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+`;
+
+const OrderItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+`;
+
+const ItemName = styled.span`
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 500;
+`;
+
+const ItemPrice = styled.span`
+  font-size: 1.1rem;
+  color: #2ed573;
+  font-weight: bold;
+`;
+
+const OptionsList = styled.div`
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #666;
+`;
+
+const TotalPrice = styled.div`
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #2ed573;
+`;
+
+const TotalAmount = styled.div`
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2ed573;
+`;
+
+const PaymentMethodsContainer = styled.div`
+  margin-bottom: 30px;
+`;
+
+const PaymentTitle = styled.h3`
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+`;
+
+const PaymentMethods = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+`;
+
+const PaymentMethodButton = styled.button`
+  padding: 20px;
+  border: 2px solid ${props => props.selected ? '#2ed573' : '#ddd'};
+  background: ${props => props.selected ? '#2ed573' : 'white'};
+  color: ${props => props.selected ? 'white' : '#333'};
+  border-radius: 15px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  &:hover {
+    border-color: #2ed573;
+    background: ${props => props.selected ? '#2ed573' : '#f8f9fa'};
+  }
+`;
+
+const PaymentIcon = styled.div`
+  font-size: 2rem;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+`;
+
+const Button = styled.button`
+  padding: 15px 30px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
+const BackButton = styled(Button)`
+  background: #6c757d;
+  color: white;
+  &:hover { background: #5a6268; }
+`;
+
+const PayButton = styled(Button)`
+  background: #2ed573;
+  color: white;
+  &:hover { background: #26d0a8; }
+`;
+
+const VoiceButtonContainer = styled.div`
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 1000;
+`;
 
 const PaymentPage = () => {
   const location = useLocation();
@@ -32,13 +166,19 @@ const PaymentPage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { cart, total } = location.state || {};
-
-  // 장바구니가 없으면 메인페이지로 리다이렉트
-  if (!cart || cart.length === 0) {
+  // ✅ 다중 아이템 수신
+  const { items } = location.state || {};
+  if (!Array.isArray(items) || items.length === 0) {
     navigate('/');
     return null;
   }
+
+  // 총액(단가×수량 합)
+  const totalPrice = items.reduce((sum, it) => {
+    const unit = Number(it.price || 0);
+    const qty  = Number(it.cnt || 1);
+    return sum + unit * qty;
+  }, 0);
 
   // 음성 인식 결과 처리
   useEffect(() => {
@@ -48,48 +188,59 @@ const PaymentPage = () => {
   }, [transcript, selectedPaymentMethod]);
 
   const handleVoicePayment = (command) => {
-    const lowerCommand = command.toLowerCase();
-    
-    if (lowerCommand.includes('카드') || lowerCommand.includes('card')) {
-      setSelectedPaymentMethod('card');
-      speak('카드 결제를 선택하셨습니다.');
-    } else if (lowerCommand.includes('qr') || lowerCommand.includes('큐알')) {
-      setSelectedPaymentMethod('qr');
-      speak('QR 결제를 선택하셨습니다.');
+    const lowerCommand = String(command || '').toLowerCase();
+    const foundPaymentMethod = menuData.paymentMethods.find(method => 
+      lowerCommand.includes(method.name.toLowerCase()) ||
+      lowerCommand.includes(method.id.toLowerCase())
+    );
+
+    if (foundPaymentMethod) {
+      setSelectedPaymentMethod(foundPaymentMethod);
+      speak(`${foundPaymentMethod.name}을 선택하셨습니다. 결제를 진행합니다.`);
+      setTimeout(() => { handlePayment(); }, 2000);
     } else {
-      speak('카드 결제 또는 QR 결제 중에서 선택해주세요.');
+      speak('해당하는 결제 방법이 없습니다. 카드 결제 또는 QR 결제 중에서 선택해주세요.');
     }
   };
 
   const handlePaymentMethodSelect = (method) => {
     setSelectedPaymentMethod(method);
-    if (method === 'card') {
-      speak('카드 결제를 선택하셨습니다.');
-    } else {
-      speak('QR 결제를 선택하셨습니다.');
-    }
   };
 
   const handlePayment = () => {
-    if (!selectedPaymentMethod) return;
-    
     setIsProcessing(true);
     speak('결제가 진행 중입니다. 잠시만 기다려주세요.');
     
     // 결제 시뮬레이션
     setTimeout(() => {
-      speak('결제가 완료되었습니다.');
+      speak('결제가 완료되었습니다. 영수증을 출력합니다.');
       setTimeout(() => {
+        // ✅ 영수증 페이지로 items 그대로 전달
         navigate('/receipt', { 
           state: { 
-            cart, 
-            total,
+            items, 
             paymentMethod: selectedPaymentMethod,
-            orderNumber: `ORDER-${Date.now().toString().slice(-6)}`
+            orderNumber: generateOrderNumber()
           } 
         });
       }, 2000);
     }, 3000);
+  };
+
+  const generateOrderNumber = () => {
+    return `ORDER-${Date.now().toString().slice(-6)}`;
+  };
+
+  const getOptionDisplayName = (optionKey, option) => {
+    const displayNames = {
+      temperature: { hot: '뜨거운', ice: '차가운' },
+      size: { regular: '레귤러', large: '라지' },
+      shot: { single: '싱글샷', double: '더블샷' },
+      sweetness: { none: '당도 없음', less: '당도 적게', normal: '당도 보통', more: '당도 많이' },
+      milk: { whole: '전지유', skim: '저지방유', oat: '오트밀크', almond: '아몬드밀크' }
+    };
+    const v = String(option ?? '').toLowerCase();
+    return displayNames[optionKey]?.[v] || `${optionKey}: ${option ?? ''}`;
   };
 
   const handleBack = () => {
@@ -102,205 +253,73 @@ const PaymentPage = () => {
   }, []);
 
   return (
-    <div className="wrap">
-      <div className="inner">
-        <header>
-          <a href="#home" className="link_home" onClick={(e) => { e.preventDefault(); handleBack(); }}>
-            <span className="ico_cafe">홈으로</span>
-          </a>
-          <h1>결제하기</h1>
-        </header>
+    <PaymentContainer>
+      <PaymentCard>
+        <OrderSummary>
+          <OrderTitle>주문 내역</OrderTitle>
 
-        <main>
-          {/* 주문 내역 */}
-          <div className="tab_container">
-            <div className="tab_panel on">
-              <div className="cont_menus">
-                <h2 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '1.5rem', color: '#333' }}>
-                  주문 내역
-                </h2>
-                <ul className="list_menus" style={{ 
-                  display: 'block', 
-                  gridTemplateColumns: 'none',
-                  padding: '20px'
-                }}>
-                  {cart.map((item, index) => (
-                    <li key={`${item.id}-${index}`} style={{ 
-                      marginBottom: '15px',
-                      border: '1px solid #dcdcdc',
-                      borderRadius: '10px',
-                      overflow: 'hidden'
-                    }}>
-                      <div className="link_item" style={{ 
-                        cursor: 'default', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        padding: '15px',
-                        minHeight: '80px'
-                      }}>
-                        <img src={IMG(item.id)} className="img_drink" alt="" style={{ 
-                          marginRight: '15px',
-                          width: '60px',
-                          height: '60px',
-                          objectFit: 'contain',
-                          flexShrink: 0
-                        }} />
-                        <div style={{ 
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: 'hidden'
-                        }}>
-                          <strong className="tit_name" style={{
-                            display: 'block',
-                            fontSize: '16px',
-                            lineHeight: '1.3',
-                            color: '#333',
-                            marginBottom: '8px',
-                            wordBreak: 'keep-all',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {item.name}
-                          </strong>
-                          <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '10px'
-                          }}>
-                            <span style={{ 
-                              color: '#666',
-                              fontSize: '14px',
-                              flex: '1',
-                              minWidth: '80px'
-                            }}>
-                              수량: {item.cnt}개
-                            </span>
-                            <div className="txt_price" style={{
-                              fontSize: '16px',
-                              fontWeight: 'bold',
-                              color: '#2ed573',
-                              flexShrink: 0
-                            }}>
-                              {fmt(item.price * item.cnt)}원
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
+          {/* ✅ 모든 아이템 + 옵션 표시 */}
+          {items.map((it, idx) => (
+            <React.Fragment key={`${it.id}-${idx}`}>
+              <OrderItem>
+                <ItemName>
+                  {it.name}{Number(it.cnt || 1) > 1 ? ` x${it.cnt}` : ''}
+                </ItemName>
+                <ItemPrice>
+                  {(Number(it.price || 0) * Number(it.cnt || 1)).toLocaleString()}원
+                </ItemPrice>
+              </OrderItem>
+
+              {it.options && Object.keys(it.options).length > 0 && (
+                <OptionsList>
+                  {Object.entries(it.options).map(([key, value]) => (
+                    <div key={key}>
+                      {getOptionDisplayName(key, value)}
+                    </div>
                   ))}
-                </ul>
-                
-                <div style={{ 
-                  textAlign: 'center', 
-                  marginTop: '20px', 
-                  padding: '20px', 
-                  backgroundColor: '#f8f9fa', 
-                  borderRadius: '10px',
-                  border: '2px solid #2ed573'
-                }}>
-                  <div style={{ fontSize: '1.2rem', color: '#666', marginBottom: '10px' }}>총 결제 금액</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2ed573' }}>
-                    {fmt(total)}원
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                </OptionsList>
+              )}
+            </React.Fragment>
+          ))}
 
-          {/* 결제 방법 선택 */}
-          <div className="tab_container" style={{ marginTop: '30px' }}>
-            <div className="tab_panel on">
-              <div className="cont_menus">
-                <h2 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '1.5rem', color: '#333' }}>
-                  결제 방법 선택
-                </h2>
-                
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-                  gap: '20px',
-                  marginBottom: '30px'
-                }}>
-                  {/* 카드 결제 */}
-                  <div 
-                    className={`link_item ${selectedPaymentMethod === 'card' ? 'selected' : ''}`}
-                    style={{ 
-                      cursor: 'pointer', 
-                      padding: '30px', 
-                      textAlign: 'center',
-                      border: selectedPaymentMethod === 'card' ? '3px solid #2ed573' : '2px solid #ddd',
-                      borderRadius: '15px',
-                      backgroundColor: selectedPaymentMethod === 'card' ? '#f0fff4' : 'white',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onClick={() => handlePaymentMethodSelect('card')}
-                  >
-                    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>💳</div>
-                    <strong className="tit_name" style={{ fontSize: '1.3rem' }}>카드 결제</strong>
-                    <div style={{ marginTop: '10px', color: '#666' }}>신용카드로 결제</div>
-                  </div>
+          <TotalPrice>
+            <TotalAmount>총 금액: {totalPrice.toLocaleString()}원</TotalAmount>
+          </TotalPrice>
+        </OrderSummary>
 
-                  {/* QR 결제 */}
-                  <div 
-                    className={`link_item ${selectedPaymentMethod === 'qr' ? 'selected' : ''}`}
-                    style={{ 
-                      cursor: 'pointer', 
-                      padding: '30px', 
-                      textAlign: 'center',
-                      border: selectedPaymentMethod === 'qr' ? '3px solid #2ed573' : '2px solid #ddd',
-                      borderRadius: '15px',
-                      backgroundColor: selectedPaymentMethod === 'qr' ? '#f0fff4' : 'white',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onClick={() => handlePaymentMethodSelect('qr')}
-                  >
-                    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📱</div>
-                    <strong className="tit_name" style={{ fontSize: '1.3rem' }}>QR 결제</strong>
-                    <div style={{ marginTop: '10px', color: '#666' }}>QR코드로 결제</div>
-                  </div>
-                </div>
+        <PaymentMethodsContainer>
+          <PaymentTitle>결제 방법 선택</PaymentTitle>
+          <PaymentMethods>
+            {menuData.paymentMethods.map(method => (
+              <PaymentMethodButton
+                key={method.id}
+                selected={selectedPaymentMethod?.id === method.id}
+                onClick={() => handlePaymentMethodSelect(method)}
+              >
+                <PaymentIcon>
+                  {method.id === 'card' ? '💳' : '📱'}
+                </PaymentIcon>
+                {method.name}
+              </PaymentMethodButton>
+            ))}
+          </PaymentMethods>
+        </PaymentMethodsContainer>
 
-                {/* 버튼 그룹 */}
-                <div className="group_btn" style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-                  <a 
-                    href="#back" 
-                    className="btn_comm btn_comm2" 
-                    onClick={(e) => { e.preventDefault(); handleBack(); }}
-                    style={{ flex: 1, maxWidth: '200px' }}
-                  >
-                    뒤로가기
-                  </a>
-                  <a 
-                    href="#pay" 
-                    className={`btn_comm btn_comm1 ${!selectedPaymentMethod ? 'disabled' : ''}`}
-                    onClick={(e) => { 
-                      e.preventDefault(); 
-                      if (selectedPaymentMethod) handlePayment(); 
-                    }}
-                    style={{ 
-                      flex: 1, 
-                      maxWidth: '200px',
-                      opacity: !selectedPaymentMethod ? 0.5 : 1,
-                      cursor: !selectedPaymentMethod ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {isProcessing ? '결제 중...' : '결제하기'}
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-      
-      {/* 음성 버튼 */}
-      <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000 }}>
+        <ActionButtons>
+          <BackButton onClick={handleBack}>뒤로가기</BackButton>
+          <PayButton 
+            onClick={handlePayment}
+            disabled={!selectedPaymentMethod || isProcessing}
+          >
+            {isProcessing ? '결제 중...' : '결제하기'}
+          </PayButton>
+        </ActionButtons>
+      </PaymentCard>
+
+      <VoiceButtonContainer>
         <VoiceButton />
-      </div>
-    </div>
+      </VoiceButtonContainer>
+    </PaymentContainer>
   );
 };
 
