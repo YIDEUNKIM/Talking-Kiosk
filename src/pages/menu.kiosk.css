@@ -134,3 +134,18 @@ main {
 .area_cart {
   height: var(--paylayer-h) !important;
 }
+/* 화면 너비를 기준으로 768px 디자인을 통째로 스케일 */
+@media (max-width: 768px) {
+  html {
+    zoom: calc(100vw / 768); /* 크롬/엣지/브레이브 등에서 잘 동작 */
+    transform-origin: top center;
+  }
+}
+
+/* 높이가 더 작을 때(키오스크 세로 공간이 작은 경우)를 위한 보정 */
+@media (max-height: 800px) {
+  html {
+    /* 필요하면 높이 기준으로도 한 번 더 제한 */
+    zoom: min(var(--zz, 1), calc(100vh / 800));
+  }
+}
