@@ -10,12 +10,16 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
     "react-router-dom": "^6.8.0",
+    "react-scripts": "5.0.1",
     "styled-components": "^5.3.9",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "ws": "^8.18.3"
   },
   "browserslist": {
     "production": [
@@ -29,4 +33,4 @@
       "last 1 safari version"
     ]
   }
-} 
+}

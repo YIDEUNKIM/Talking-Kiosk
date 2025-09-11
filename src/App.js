@@ -6,6 +6,7 @@ import ItemDetailPage from './pages/ItemDetailPage';
 import PaymentPage from './pages/PaymentPage';
 import ReceiptPage from './pages/ReceiptPage';
 import { VoiceProvider } from './contexts/VoiceContext';
+import VoiceButton from './components/VoiceButton';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -14,18 +15,20 @@ const AppContainer = styled.div`
 
 function App() {
   return (
-    <VoiceProvider>
-      <AppContainer>
-        <Router>
+    <AppContainer>
+      <Router>
+        <VoiceProvider>
           <Routes>
             <Route path="/" element={<MenuPage />} />
             <Route path="/item/:itemId" element={<ItemDetailPage />} />
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/receipt" element={<ReceiptPage />} />
           </Routes>
-        </Router>
-      </AppContainer>
-    </VoiceProvider>
+          {/* 모든 페이지에서 접근 가능한 고정 음성 버튼 */}
+          <VoiceButton />
+        </VoiceProvider>
+      </Router>
+    </AppContainer>
   );
 }
 

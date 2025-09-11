@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // ✅ 라우팅 훅
+import { useVoice } from "../contexts/VoiceContext";
 import "./menu.kiosk.css";
 
 const IMG = (id) => {
@@ -52,11 +53,43 @@ export default function MenuPage() {
   const [layerOpen, setLayerOpen] = useState(true);
 
   const navigate = useNavigate(); // ✅ 라우팅 훅
+  const { orders, clearOrders, speak } = useVoice();
+
+  // 음성 주문과 수동 주문을 합친 전체 장바구니
+  const allItems = useMemo(() => {
+    const voiceItems = orders.map(order => ({
+      id: order.id,
+      name: order.name + (order.temperature === 'ice' ? '(아이스)' : order.temperature === 'hot' ? '(핫)' : ''),
+      price: order.price,
+      cnt: order.quantity,
+      temp: order.temperature === 'ice' ? 'ICE' : 'HOT',
+      options: order.options,
+      isVoiceOrder: true
+    }));
+    return [...cart, ...voiceItems];
+  }, [cart, orders]);
 
   const total = useMemo(
-    () => cart.reduce((s, it) => s + it.price * it.cnt, 0),
-    [cart]
+    () => allItems.reduce((s, it) => s + it.price * it.cnt, 0),
+    [allItems]
   );
+
+  // 음성 주문이 들어오면 자동으로 장바구니 업데이트
+  useEffect(() => {
+    if (orders.length > 0) {
+      console.log('🛒 [메뉴페이지] 음성 주문 업데이트됨:');
+      console.table(orders.map(order => ({
+        이름: order.name,
+        수량: order.quantity,
+        온도: order.temperature === 'ice' ? '아이스' : '핫',
+        가격: `${order.price}원`,
+        시간: new Date(order.timestamp).toLocaleTimeString()
+      })));
+      
+      const totalPrice = orders.reduce((sum, order) => sum + (order.price * order.quantity), 0);
+      console.log('💰 [메뉴페이지] 음성 주문 총액:', `${totalPrice.toLocaleString()}원`);
+    }
+  }, [orders]);
 
   const openSelect = (id) => {
     const m = MENU[id];
@@ -152,15 +185,30 @@ export default function MenuPage() {
     setCart([]);
     setPopup(null);
     setTabIdx(0);
+    clearOrders(); // 음성 주문도 초기화
+    speak('장바구니가 초기화되었습니다.');
   };
 
   // ✅ 결제 페이지로 이동: 장바구니 전체를 items 배열로 전달
   const gotoPayment = () => {
-    if (cart.length === 0) return;
+    if (allItems.length === 0) {
+      console.log('⚠️ [결제] 장바구니가 비어있어 결제 불가');
+      return;
+    }
+
+    console.log('💳 [결제] 결제 페이지로 이동 준비');
+    console.log('🛒 [결제] 전체 주문 내역:');
+    console.table(allItems.map(item => ({
+      이름: item.name,
+      수량: item.cnt,
+      단가: `${item.price}원`,
+      소계: `${item.price * item.cnt}원`,
+      타입: item.isVoiceOrder ? '음성주문' : '수동주문'
+    })));
 
     const toLower = (v) => (v ? String(v).toLowerCase() : "");
 
-    const items = cart.map((c) => ({
+    const items = allItems.map((c) => ({
       id: c.id,
       name: c.name,                 // 카트표시명 유지 (옵션은 별도 표시되므로 안전)
       price: Number(c.price || 0),  // 단가
@@ -174,6 +222,8 @@ export default function MenuPage() {
       }
     }));
 
+    console.log('💰 [결제] 총 결제 금액:', `${total.toLocaleString()}원`);
+    speak('결제 페이지로 이동합니다.');
     navigate("/payment", { state: { items } });
   };
 
@@ -243,20 +293,33 @@ export default function MenuPage() {
               <div className="area_cart on">
                 <div className="wrap_cart">
                   <ul className="list_cart">
-                    {cart.length === 0 && [0,1,2].map((i)=>(
+                    {allItems.length === 0 && [0,1,2].map((i)=>(
                       <li key={i}><span className="ico_cafe ico_default"></span></li>
                     ))}
-                    {cart.map((c, i)=>(
+                    {allItems.map((c, i)=>(
                       <li key={`${c.id}-${c.temp}-${i}`}>
                         <span className="ico_cafe ico_default"></span>
                         <div className="item_menus" data-id={`id${c.id}`} data-price={c.price}>
                           <img src={IMG(c.id)} className="img_menus" alt="" />
                           <div className="info_count">
-                            <a href="#m" className="ico_cafe ico_minus" onClick={(e)=>{e.preventDefault(); cartMinus(i);}}>-</a>
-                            <div className="txt_count">{c.cnt}</div>
-                            <a href="#p" className="ico_cafe ico_plus" onClick={(e)=>{e.preventDefault(); cartPlus(i);}}>+</a>
+                            {c.isVoiceOrder ? (
+                              // 음성 주문은 수량 변경 불가
+                              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                <span style={{color: '#2ed573', fontSize: '12px', fontWeight: 'bold'}}>음성주문</span>
+                                <div className="txt_count">{c.cnt}</div>
+                              </div>
+                            ) : (
+                              // 수동 주문은 수량 변경 가능
+                              <>
+                                <a href="#m" className="ico_cafe ico_minus" onClick={(e)=>{e.preventDefault(); cartMinus(i);}}>-</a>
+                                <div className="txt_count">{c.cnt}</div>
+                                <a href="#p" className="ico_cafe ico_plus" onClick={(e)=>{e.preventDefault(); cartPlus(i);}}>+</a>
+                              </>
+                            )}
                           </div>
-                          <a href="#d" className="btn_delete" onClick={(e)=>{e.preventDefault(); cartDelete(i);}}><span className="ico_cafe">삭제</span></a>
+                          {!c.isVoiceOrder && (
+                            <a href="#d" className="btn_delete" onClick={(e)=>{e.preventDefault(); cartDelete(i);}}><span className="ico_cafe">삭제</span></a>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -278,7 +341,7 @@ export default function MenuPage() {
                   <a
                     href="#pay"
                     className="btn_pay"
-                    onClick={(e)=>{ e.preventDefault(); if (cart.length>0) gotoPayment(); }}
+                    onClick={(e)=>{ e.preventDefault(); if (allItems.length>0) gotoPayment(); }}
                   >
                     <span className="ico_cafe"></span>결제하기
                   </a>
