@@ -46,8 +46,10 @@ class Server {
     
     // CORS 설정
     this.app.use(cors({
-      origin: config.socket.corsOrigin,
-      credentials: true
+      origin: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
     }));
     
     // 로깅 미들웨어
@@ -143,3 +145,4 @@ const server = new Server();
 server.start();
 
 module.exports = server;
+

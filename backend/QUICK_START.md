@@ -177,3 +177,4 @@ const socket = io('http://localhost:3001');
 - **상세 문서**: [README.md](./README.md)
 - **API 문서**: 서버 실행 후 http://localhost:3001/api/menu
 - **소스 코드**: 각 서비스별로 `services/` 디렉토리 참조
+

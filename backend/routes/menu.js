@@ -4,23 +4,22 @@ const menuService = require('../services/menuService');
 const logger = require('../utils/logger');
 
 /**
- * 전체 메뉴 조회
+ * 전체 메뉴 데이터 조회
  * GET /api/menu
  */
 router.get('/', async (req, res) => {
   try {
     const menuData = await menuService.getMenuData();
-
+    
     res.json({
       success: true,
       data: menuData
     });
-
   } catch (error) {
-    logger.error('Menu retrieval error:', error);
+    logger.error('Menu data fetch error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve menu data'
+      error: 'Failed to fetch menu data'
     });
   }
 });
@@ -32,258 +31,179 @@ router.get('/', async (req, res) => {
 router.get('/category/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const category = await menuService.getCategoryById(categoryId);
-
-    if (!category) {
+    const menuItems = await menuService.getMenuByCategory(categoryId);
+    
+    if (menuItems.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Category not found'
       });
     }
-
+    
     res.json({
       success: true,
-      data: category
+      data: {
+        categoryId,
+        items: menuItems
+      }
     });
-
   } catch (error) {
-    logger.error('Category retrieval error:', error);
+    logger.error('Category menu fetch error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve category'
+      error: 'Failed to fetch category menu'
     });
   }
 });
 
 /**
  * 특정 메뉴 아이템 조회
- * GET /api/menu/item/:itemId
+ * GET /api/menu/item/:categoryId/:itemId
  */
-router.get('/item/:itemId', async (req, res) => {
+router.get('/item/:categoryId/:itemId', async (req, res) => {
   try {
-    const { itemId } = req.params;
-    const item = await menuService.getItemById(itemId);
-
-    if (!item) {
+    const { categoryId, itemId } = req.params;
+    const menuItem = await menuService.getMenuItem(categoryId, itemId);
+    
+    if (!menuItem) {
       return res.status(404).json({
         success: false,
         error: 'Menu item not found'
       });
     }
-
+    
     res.json({
       success: true,
-      data: item
+      data: {
+        ...menuItem,
+        categoryId,
+        categoryName: menuItem.categoryName
+      }
     });
-
   } catch (error) {
-    logger.error('Menu item retrieval error:', error);
+    logger.error('Menu item fetch error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve menu item'
+      error: 'Failed to fetch menu item'
     });
   }
 });
 
 /**
  * 메뉴 검색
- * GET /api/menu/search
+ * GET /api/menu/search?q=검색어
  */
 router.get('/search', async (req, res) => {
   try {
-    const { q, category, priceMin, priceMax } = req.query;
-
-    if (!q && !category && !priceMin && !priceMax) {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'At least one search parameter is required'
+        error: 'Search query is required'
       });
     }
-
-    const searchResults = await menuService.searchMenuItems({
-      query: q,
-      category,
-      priceMin: priceMin ? parseInt(priceMin) : undefined,
-      priceMax: priceMax ? parseInt(priceMax) : undefined
-    });
-
+    
+    const searchResults = await menuService.searchMenuItems(q.trim());
+    
     res.json({
       success: true,
-      data: searchResults
+      data: {
+        query: q.trim(),
+        results: searchResults,
+        count: searchResults.length
+      }
     });
-
   } catch (error) {
     logger.error('Menu search error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to search menu items'
+      error: 'Failed to search menu'
     });
   }
 });
 
 /**
- * 결제 방법 목록 조회
+ * 결제 방법 조회
  * GET /api/menu/payment-methods
  */
 router.get('/payment-methods', async (req, res) => {
   try {
     const paymentMethods = await menuService.getPaymentMethods();
-
+    
     res.json({
       success: true,
       data: paymentMethods
     });
-
   } catch (error) {
-    logger.error('Payment methods retrieval error:', error);
+    logger.error('Payment methods fetch error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve payment methods'
+      error: 'Failed to fetch payment methods'
     });
   }
 });
 
 /**
- * 메뉴 옵션 조회
+ * 공통 옵션 조회
  * GET /api/menu/options
  */
 router.get('/options', async (req, res) => {
   try {
-    const options = await menuService.getCommonOptions();
-
+    const commonOptions = await menuService.getCommonOptions();
+    
     res.json({
       success: true,
-      data: options
+      data: commonOptions
     });
-
   } catch (error) {
-    logger.error('Menu options retrieval error:', error);
+    logger.error('Common options fetch error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve menu options'
+      error: 'Failed to fetch common options'
     });
   }
 });
 
 /**
- * 메뉴 통계 조회
- * GET /api/menu/statistics
+ * 메뉴 서비스 상태 조회
+ * GET /api/menu/status
  */
-router.get('/statistics', async (req, res) => {
+router.get('/status', (req, res) => {
   try {
-    const statistics = await menuService.getMenuStatistics();
-
+    const status = menuService.getServiceStatus();
+    
     res.json({
       success: true,
-      data: statistics
+      data: status
     });
-
   } catch (error) {
-    logger.error('Menu statistics retrieval error:', error);
+    logger.error('Menu service status error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve menu statistics'
+      error: 'Failed to get menu service status'
     });
   }
 });
 
 /**
- * 메뉴 업데이트 (관리자용)
- * PUT /api/menu/item/:itemId
+ * 메뉴 데이터 새로고침
+ * POST /api/menu/refresh
  */
-router.put('/item/:itemId', async (req, res) => {
+router.post('/refresh', async (req, res) => {
   try {
-    const { itemId } = req.params;
-    const updateData = req.body;
-
-    const updatedItem = await menuService.updateMenuItem(itemId, updateData);
-
-    if (!updatedItem) {
-      return res.status(404).json({
-        success: false,
-        error: 'Menu item not found'
-      });
-    }
-
-    logger.info('Menu item updated:', { itemId, updateData });
-
+    const refreshedData = await menuService.refreshMenuData();
+    
     res.json({
       success: true,
-      data: updatedItem
+      data: refreshedData,
+      message: 'Menu data refreshed successfully'
     });
-
   } catch (error) {
-    logger.error('Menu item update error:', error);
+    logger.error('Menu data refresh error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update menu item'
-    });
-  }
-});
-
-/**
- * 메뉴 아이템 추가 (관리자용)
- * POST /api/menu/item
- */
-router.post('/item', async (req, res) => {
-  try {
-    const itemData = req.body;
-
-    // 필수 필드 검증
-    if (!itemData.name || !itemData.price || !itemData.categoryId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Name, price, and categoryId are required'
-      });
-    }
-
-    const newItem = await menuService.addMenuItem(itemData);
-
-    logger.info('Menu item added:', { itemId: newItem.id, name: newItem.name });
-
-    res.status(201).json({
-      success: true,
-      data: newItem
-    });
-
-  } catch (error) {
-    logger.error('Menu item addition error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add menu item'
-    });
-  }
-});
-
-/**
- * 메뉴 아이템 삭제 (관리자용)
- * DELETE /api/menu/item/:itemId
- */
-router.delete('/item/:itemId', async (req, res) => {
-  try {
-    const { itemId } = req.params;
-
-    const deleted = await menuService.deleteMenuItem(itemId);
-
-    if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        error: 'Menu item not found'
-      });
-    }
-
-    logger.info('Menu item deleted:', { itemId });
-
-    res.json({
-      success: true,
-      message: 'Menu item deleted successfully'
-    });
-
-  } catch (error) {
-    logger.error('Menu item deletion error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete menu item'
+      error: 'Failed to refresh menu data'
     });
   }
 });

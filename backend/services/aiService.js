@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 class AIService {
   constructor() {
     this.ollamaUrl = 'http://localhost:11434';
-    this.modelName = 'gemma3:27b'; // Gemma3 27B model
+    this.modelName = 'gemma3:27b';
     this.initializeClient();
   }
 
@@ -88,45 +88,24 @@ class AIService {
   buildOrderAnalysisPrompt(userInput, menuData, context) {
     const menuItems = this.flattenMenuItems(menuData);
     
-    return `당신은 카페 키오스크의 AI 어시스턴트입니다. 사용자의 음성 입력을 분석하여 주문을 처리해주세요.
+    return `사용자 입력: "${userInput}"
 
-사용자 입력: "${userInput}"
-현재 페이지: ${context.currentPage || 'menu'}
+입력 텍스트를 분석하여 다음 중 하나의 JSON을 정확히 반환하세요:
 
-사용 가능한 메뉴:
-${menuItems.map(item => `- ${item.name} (${item.id}): ${item.price}원`).join('\n')}
+"아메리카노"가 포함된 경우:
+{"intent": "order", "items": [{"menuId": "americano", "name": "아메리카노", "price": 2500, "quantity": 1, "options": {"temperature": "ice"}}], "totalPrice": 2500, "response": "아메리카노가 장바구니에 추가되었습니다", "nextAction": "continue"}
 
-다음 JSON 형식으로 응답해주세요:
-{
-  "intent": "order" | "question" | "cancel" | "payment",
-  "items": [
-    {
-      "menuId": "메뉴 ID",
-      "name": "메뉴 이름",
-      "quantity": 숫자,
-      "options": {
-        "temperature": "hot" | "ice",
-        "size": "regular" | "large",
-        "shot": "single" | "double",
-        "milk": "whole" | "skim" | "oat" | "almond",
-        "sweetness": "none" | "less" | "normal" | "more"
-      }
-    }
-  ],
-  "totalPrice": 총가격,
-  "response": "사용자에게 들려줄 응답 메시지",
-  "nextAction": "continue" | "confirm" | "payment" | "complete"
-}
+"라떼" 또는 "카페라떼"가 포함된 경우:
+{"intent": "order", "items": [{"menuId": "cafelatte", "name": "카페라떼", "price": 3900, "quantity": 1, "options": {"temperature": "hot"}}], "totalPrice": 3900, "response": "카페라떼가 장바구니에 추가되었습니다", "nextAction": "continue"}
 
-규칙:
-1. "아아", "아메리카노" → 아이스 아메리카노로 해석
-2. "뜨아", "뜨거운 아메리카노" → 핫 아메리카노로 해석
-3. "두 잔", "2개" → quantity: 2
-4. "큰 거", "라지" → size: "large"
-5. "샷 추가" → shot: "double"
-6. "우유 변경" → milk 옵션 변경
-7. 가격은 메뉴 데이터의 price * quantity로 계산
-8. 응답은 친근하고 자연스러운 한국어로 작성
+"모카" 또는 "카페모카"가 포함된 경우:
+{"intent": "order", "items": [{"menuId": "mocha", "name": "카페모카", "price": 4500, "quantity": 1, "options": {"temperature": "hot"}}], "totalPrice": 4500, "response": "카페모카가 장바구니에 추가되었습니다", "nextAction": "continue"}
+
+"결제", "계산", "돈", "카드"가 포함된 경우:
+{"intent": "payment", "items": [], "totalPrice": 0, "response": "결제 페이지로 이동합니다", "nextAction": "payment"}
+
+그 외의 경우:
+{"intent": "question", "items": [], "totalPrice": 0, "response": "무엇을 도와드릴까요?", "nextAction": "continue"}
 
 JSON만 응답하고 다른 텍스트는 포함하지 마세요.`;
   }

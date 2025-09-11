@@ -6,7 +6,7 @@ async function testOllama() {
   console.log('🦙 Ollama 로컬 AI 모델 테스트 시작...\n');
   
   const ollamaUrl = 'http://localhost:11434';
-  const modelName = 'gemma3:27b';
+  const modelName = 'gemma3:4b';
   
   try {
     // 1단계: Ollama 서버 상태 확인
@@ -30,9 +30,9 @@ async function testOllama() {
       console.log('   2. 설치 후 터미널에서 실행:');
       console.log('      ollama serve');
       console.log('   3. Gemma 모델 다운로드:');
-      console.log('      ollama pull gemma3:27b');
+      console.log('      ollama pull gemma3:4b');
       console.log('   4. 모델 실행:');
-      console.log('      ollama run gemma3:27b');
+      console.log('      ollama run gemma3:4b');
       return;
     }
     
@@ -178,7 +178,7 @@ JSON만 응답하고 다른 텍스트는 포함하지 마세요.`;
         console.log(`❌ 실패: ${error.message}`);
         if (error.response?.status === 404) {
           console.log('💡 Gemma 모델이 설치되지 않음');
-          console.log('   터미널에서 실행: ollama pull gemma3:27b');
+          console.log('   터미널에서 실행: ollama pull gemma3:4b');
         }
         console.log('');
       }

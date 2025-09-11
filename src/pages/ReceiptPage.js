@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import menuData from '../data/menu.json';
+import VoiceButton from '../components/VoiceButton';
 
 const ReceiptContainer = styled.div`
   min-height: 100vh;
@@ -199,6 +200,17 @@ const ReceiptPage = () => {
 
         <Footer>이용해 주셔서 감사합니다.</Footer>
       </ReceiptCard>
+      
+      {/* 오른쪽 하단 고정 음성 버튼 */}
+      <div style={{
+        position: 'fixed',
+        bottom: '30px',
+        right: '30px',
+        zIndex: 1000,
+        pointerEvents: 'auto'
+      }}>
+        <VoiceButton />
+      </div>
     </ReceiptContainer>
   );
 };

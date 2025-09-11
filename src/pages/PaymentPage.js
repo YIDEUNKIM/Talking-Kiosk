@@ -151,12 +151,6 @@ const PayButton = styled(Button)`
   &:hover { background: #26d0a8; }
 `;
 
-const VoiceButtonContainer = styled.div`
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  z-index: 1000;
-`;
 
 const PaymentPage = () => {
   const location = useLocation();
@@ -166,10 +160,36 @@ const PaymentPage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ✅ 다중 아이템 수신
-  const { items } = location.state || {};
+  // ✅ 다중 아이템 수신 (location.state 또는 VoiceContext에서)
+  const { items: locationItems } = location.state || {};
+  const { currentOrder } = useVoice();
+  
+  // 아이템 결정: location.state가 있으면 사용, 없으면 VoiceContext의 currentOrder 사용
+  const rawItems = locationItems || (currentOrder?.items || []);
+  
+  // VoiceContext의 아이템을 기존 형식으로 변환
+  const items = rawItems.map(item => ({
+    id: item.menuId || item.id,
+    name: item.name,
+    price: item.totalPrice || item.price || 0,
+    cnt: item.quantity || item.cnt || 1,
+    options: {
+      temperature: item.options?.temperature || item.temp || 'ice',
+      size: item.options?.size || 'regular',
+      shot: item.options?.shot || 'single',
+      sweetness: item.options?.sweetness || 'none',
+      milk: item.options?.milk || 'whole'
+    }
+  }));
+  
+  // 아이템이 없으면 메인 페이지로 리다이렉트
+  useEffect(() => {
+    if (!Array.isArray(items) || items.length === 0) {
+      navigate('/');
+    }
+  }, [items, navigate]);
+  
   if (!Array.isArray(items) || items.length === 0) {
-    navigate('/');
     return null;
   }
 
@@ -316,9 +336,16 @@ const PaymentPage = () => {
         </ActionButtons>
       </PaymentCard>
 
-      <VoiceButtonContainer>
+      {/* 오른쪽 하단 고정 음성 버튼 */}
+      <div style={{
+        position: 'fixed',
+        bottom: '30px',
+        right: '30px',
+        zIndex: 1000,
+        pointerEvents: 'auto'
+      }}>
         <VoiceButton />
-      </VoiceButtonContainer>
+      </div>
     </PaymentContainer>
   );
 };

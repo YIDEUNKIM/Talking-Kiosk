@@ -123,12 +123,6 @@ const OrderButton = styled(Button)`
   }
 `;
 
-const VoiceButtonContainer = styled.div`
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  z-index: 1000;
-`;
 
 const ItemDetailPage = () => {
   const { itemId } = useParams();
@@ -304,9 +298,16 @@ const ItemDetailPage = () => {
         </ActionButtons>
       </ItemCard>
 
-      <VoiceButtonContainer>
+      {/* 오른쪽 하단 고정 음성 버튼 */}
+      <div style={{
+        position: 'fixed',
+        bottom: '30px',
+        right: '30px',
+        zIndex: 1000,
+        pointerEvents: 'auto'
+      }}>
         <VoiceButton />
-      </VoiceButtonContainer>
+      </div>
     </DetailContainer>
   );
 };

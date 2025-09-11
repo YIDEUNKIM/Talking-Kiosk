@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const VoiceContext = createContext();
 
@@ -11,6 +12,7 @@ export const useVoice = () => {
 };
 
 export const VoiceProvider = ({ children }) => {
+  const navigate = useNavigate();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -264,10 +266,118 @@ export const VoiceProvider = ({ children }) => {
     setIsProcessing(true);
     setError(null);
     
+    // 프론트엔드에서 직접 키워드 감지
+    const lowerCommand = command.toLowerCase();
+    
+    // 메뉴 주문 키워드 감지
+    if (lowerCommand.includes('아메리카노')) {
+      console.log('☕ 아메리카노 주문 감지됨');
+      const orderItem = {
+        menuId: 'americano',
+        name: '아메리카노',
+        price: 2500,
+        quantity: 1,
+        options: { temperature: 'ice' }
+      };
+      
+      const newOrder = {
+        id: Date.now(),
+        items: [orderItem],
+        totalPrice: 2500,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      };
+      
+      setCurrentOrder(newOrder);
+      speak('아메리카노가 장바구니에 추가되었습니다');
+      setIsProcessing(false);
+      return;
+    }
+    
+    if (lowerCommand.includes('라떼') || lowerCommand.includes('카페라떼')) {
+      console.log('☕ 카페라떼 주문 감지됨');
+      const orderItem = {
+        menuId: 'cafelatte',
+        name: '카페라떼',
+        price: 3900,
+        quantity: 1,
+        options: { temperature: 'hot' }
+      };
+      
+      const newOrder = {
+        id: Date.now(),
+        items: [orderItem],
+        totalPrice: 3900,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      };
+      
+      setCurrentOrder(newOrder);
+      speak('카페라떼가 장바구니에 추가되었습니다');
+      setIsProcessing(false);
+      return;
+    }
+    
+    if (lowerCommand.includes('모카') || lowerCommand.includes('카페모카')) {
+      console.log('☕ 카페모카 주문 감지됨');
+      const orderItem = {
+        menuId: 'mocha',
+        name: '카페모카',
+        price: 4500,
+        quantity: 1,
+        options: { temperature: 'hot' }
+      };
+      
+      const newOrder = {
+        id: Date.now(),
+        items: [orderItem],
+        totalPrice: 4500,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      };
+      
+      setCurrentOrder(newOrder);
+      speak('카페모카가 장바구니에 추가되었습니다');
+      setIsProcessing(false);
+      return;
+    }
+    
+    // 결제 관련 키워드 감지
+    if (lowerCommand.includes('결제') || lowerCommand.includes('계산') || lowerCommand.includes('돈') || lowerCommand.includes('카드')) {
+      console.log('💳 결제 키워드 감지됨');
+      speak('결제 페이지로 이동합니다');
+      addTimeout(() => {
+        // navigate를 안전하게 호출
+        try {
+          navigate('/payment');
+        } catch (error) {
+          console.error('네비게이션 오류:', error);
+        }
+      }, 1000);
+      setIsProcessing(false);
+      return;
+    }
+    
+    // 완료 관련 키워드 감지
+    if (lowerCommand.includes('완료') || lowerCommand.includes('끝') || lowerCommand.includes('그만')) {
+      console.log('✅ 완료 키워드 감지됨');
+      speak('주문이 완료되었습니다. 영수증 페이지로 이동합니다');
+      addTimeout(() => {
+        // navigate를 안전하게 호출
+        try {
+          navigate('/receipt');
+        } catch (error) {
+          console.error('네비게이션 오류:', error);
+        }
+      }, 1000);
+      setIsProcessing(false);
+      return;
+    }
+    
     try {
       // AbortController로 타임아웃 관리
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 30초 타임아웃
       
       console.log('🚀 백엔드 AI API 호출 시작...');
       const response = await fetch(`${API_URL}/api/voice/test-ai`, {
@@ -377,10 +487,13 @@ export const VoiceProvider = ({ children }) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [API_URL, speak, isProcessing]);
+  }, [API_URL, speak, isProcessing, navigate, addTimeout]);
 
   // 다음 액션 처리
   const handleNextAction = useCallback((nextAction, order) => {
+    console.log('🎯 handleNextAction 호출됨:', { nextAction, order });
+    console.log('🧭 navigate 함수 존재 여부:', typeof navigate);
+    
     switch(nextAction) {
       case 'confirm':
         console.log('✅ 주문 즉시 확인됨');
@@ -389,25 +502,56 @@ export const VoiceProvider = ({ children }) => {
         addTimeout(() => {
           speak('주문이 확인되었습니다. 결제 페이지로 이동합니다.');
           console.log('💳 결제 페이지로 이동 준비...');
-          // 실제 페이지 이동 로직 추가
+          console.log('🧭 navigate 호출 전');
+          try {
+            navigate('/payment');
+            console.log('🧭 navigate 호출 후');
+          } catch (error) {
+            console.error('네비게이션 오류:', error);
+          }
         }, 2000);
         break;
         
       case 'continue':
         console.log('🔄 주문 계속 진행');
         setCurrentOrder(prev => ({ ...prev, status: 'active' }));
+        // 메뉴 페이지에 머물러서 추가 주문 가능
         break;
         
       case 'payment':
         console.log('💳 결제 페이지로 이동');
         setCurrentOrder(prev => ({ ...prev, status: 'confirmed' }));
-        // 결제 페이지 이동 로직
+        addTimeout(() => {
+          speak('결제 페이지로 이동합니다.');
+          console.log('🧭 payment navigate 호출 전');
+          try {
+            navigate('/payment');
+            console.log('🧭 payment navigate 호출 후');
+          } catch (error) {
+            console.error('네비게이션 오류:', error);
+          }
+        }, 1000);
+        break;
+        
+      case 'complete':
+        console.log('✅ 주문 완료');
+        setCurrentOrder(prev => ({ ...prev, status: 'completed' }));
+        addTimeout(() => {
+          speak('주문이 완료되었습니다. 영수증 페이지로 이동합니다.');
+          console.log('🧭 receipt navigate 호출 전');
+          try {
+            navigate('/receipt');
+            console.log('🧭 receipt navigate 호출 후');
+          } catch (error) {
+            console.error('네비게이션 오류:', error);
+          }
+        }, 2000);
         break;
         
       default:
         console.log('알 수 없는 액션:', nextAction);
     }
-  }, [addTimeout, speak]);
+  }, [addTimeout, speak, navigate]);
 
   // 결제 처리
   const handlePayment = useCallback((aiResult) => {
@@ -419,13 +563,18 @@ export const VoiceProvider = ({ children }) => {
       setOrderHistory(prev => [...prev, { ...currentOrderSnapshot, status: 'paid' }]);
       
       addTimeout(() => {
-        setCurrentOrder(null);
-        speak('결제가 완료되었습니다. 감사합니다.');
+        // 주문을 null로 초기화하지 않고 paid 상태로 유지
+        speak('결제가 완료되었습니다. 영수증 페이지로 이동합니다.');
+        try {
+          navigate('/receipt');
+        } catch (error) {
+          console.error('네비게이션 오류:', error);
+        }
       }, 1000);
     } else {
       speak('결제할 주문이 없습니다.');
     }
-  }, [addTimeout, speak]);
+  }, [addTimeout, speak, navigate]);
 
   // 주문 취소
   const handleCancel = useCallback((aiResult) => {

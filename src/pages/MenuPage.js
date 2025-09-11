@@ -1,78 +1,175 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // ✅ 라우팅 훅
+import VoiceButton from "../components/VoiceButton";
+import { useVoice } from "../contexts/VoiceContext";
 import "./menu.kiosk.css";
-
-const IMG = (id) => {
-  const map = {
-    1: "ico_drink1.png",          // 아메리카노
-    2: "ico_drink2.png",          // 카페라떼
-    3: "cafemoca.png",            // 카페모카
-    4: "grapefruit_ade.png",      // 자몽에이드
-    5: "mango_ade.png",           // 망고에이드
-    6: "kiwi_juice.png",          // 키위주스
-    7: "peppermint_tea.png",      // 페퍼민트
-    8: "Chamomile_tea.png",       // 캐모마일
-    9: "peach_tea.png",           // 복숭아티
-    10: "cream_rollcake.png",     // 생크림 롤케이크
-    11: "cookie_wafle.png",       // 쿠키 크루와상 와플
-    12: "basic_wafle.png",        // 크루와상 와플
-  };
-  return `${process.env.PUBLIC_URL}/menu_images/${map[id]}`;
-};
 
 const fmt = (n) => Number(n).toLocaleString("ko-KR");
 
-const CATEGORIES = [
-  { key: "추천메뉴", ids: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { key: "커피", ids: [1,2,3] },
-  { key: "에이드/주스", ids: [4,5,6] },
-  { key: "티", ids: [7,8,9] },
-  { key: "디저트", ids: [10,11,12] },
-];
-
-const MENU = {
-  1: { id:1, name:"아메리카노", price:2500 },
-  2: { id:2, name:"카페라떼", price:3900 },
-  3: { id:3, name:"카페모카", price:4500 },
-  4: { id:4, name:"자몽에이드", price:4500 },
-  5: { id:5, name:"망고에이드", price:4500 },
-  6: { id:6, name:"키위주스", price:4800 },
-  7: { id:7, name:"페퍼민트", price:3500 },
-  8: { id:8, name:"캐모마일", price:3500 },
-  9: { id:9, name:"복숭아티", price:3500 },
-  10:{ id:10, name:"생크림 롤케이크", price:3500 },
-  11:{ id:11, name:"쿠키 크루와상 와플", price:4000 },
-  12:{ id:12, name:"크루와상 와플", price:2500 },
-};
+// 환경변수에서 API URL 가져오기
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 export default function MenuPage() {
   const [tabIdx, setTabIdx] = useState(0);
   const [cart, setCart] = useState([]);
   const [popup, setPopup] = useState(null);
   const [layerOpen, setLayerOpen] = useState(true);
+  const [menuData, setMenuData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [processedOrders, setProcessedOrders] = useState(new Set()); // ✅ 처리된 주문 ID 추적
 
   const navigate = useNavigate(); // ✅ 라우팅 훅
+  const { currentOrder } = useVoice(); // ✅ 음성 주문 상태 구독
 
-  const total = useMemo(
-    () => cart.reduce((s, it) => s + it.price * it.cnt, 0),
-    [cart]
-  );
+  // 백엔드에서 메뉴 데이터 가져오기
+  useEffect(() => {
+    const fetchMenuData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/api/menu`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.success) {
+          setMenuData(data.data);
+        } else {
+          throw new Error(data.error || 'Failed to fetch menu data');
+        }
+      } catch (err) {
+        console.error('메뉴 데이터 로드 실패:', err);
+        setError(err.message);
+        // 백업으로 로컬 데이터 사용
+        try {
+          const localData = await import('../data/menu.json');
+          setMenuData(localData.default);
+        } catch (localErr) {
+          console.error('로컬 메뉴 데이터도 로드 실패:', localErr);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const openSelect = (id) => {
-    const m = MENU[id];
-    const needsTemp = !(id >= 10 || (id >= 4 && id <= 6));
+    fetchMenuData();
+  }, []);
+
+  // 음성 주문이 있을 때 장바구니에 추가
+  useEffect(() => {
+    if (currentOrder && currentOrder.items && currentOrder.items.length > 0) {
+      // 이미 처리된 주문인지 확인
+      if (processedOrders.has(currentOrder.id)) {
+        console.log('🔄 이미 처리된 주문입니다:', currentOrder.id);
+        return;
+      }
+
+      console.log('🎯 음성 주문 감지됨, 장바구니에 추가:', currentOrder.items);
+      
+      // 음성 주문 아이템들을 기존 장바구니 형식으로 변환
+      const voiceOrderItems = currentOrder.items.map(item => {
+        // 메뉴 데이터에서 실제 가격 찾기
+        let actualPrice = 0;
+        if (menuData && menuData.categories) {
+          for (const category of menuData.categories) {
+            if (category.items) {
+              const menuItem = category.items.find(menu => 
+                menu.id === (item.menuId || item.id)
+              );
+              if (menuItem) {
+                actualPrice = menuItem.price;
+                break;
+              }
+            }
+          }
+        }
+        
+        const cartItem = {
+          id: item.menuId || item.id,
+          name: item.name,
+          price: actualPrice || item.price || 0, // 메뉴 데이터의 실제 가격 사용
+          quantity: item.quantity || 1,
+          temp: item.options?.temperature === 'hot' ? 'hot' : 'ice',
+          size: item.options?.size || 'regular',
+          shot: item.options?.shot || 'single',
+          milk: item.options?.milk || 'whole',
+          sweetness: item.options?.sweetness || 'none'
+        };
+        
+        console.log('🛒 장바구니 아이템 변환:', {
+          original: item,
+          cartItem: cartItem,
+          actualPrice: actualPrice
+        });
+        
+        return cartItem;
+      });
+
+      // 기존 장바구니에 추가
+      setCart(prevCart => {
+        const newCart = [...prevCart];
+        voiceOrderItems.forEach(voiceItem => {
+          // 같은 아이템이 이미 있는지 확인
+          const existingIndex = newCart.findIndex(cartItem => 
+            cartItem.id === voiceItem.id && 
+            cartItem.temp === voiceItem.temp &&
+            cartItem.size === voiceItem.size
+          );
+          
+          if (existingIndex >= 0) {
+            // 기존 아이템 수량 증가
+            newCart[existingIndex].quantity += voiceItem.quantity;
+          } else {
+            // 새 아이템 추가
+            newCart.push(voiceItem);
+          }
+        });
+        
+        console.log('🛒 업데이트된 장바구니:', newCart);
+        return newCart;
+      });
+
+      // 처리된 주문 ID 추가
+      setProcessedOrders(prev => new Set([...prev, currentOrder.id]));
+    }
+  }, [currentOrder, processedOrders, menuData]);
+
+  const total = useMemo(() => {
+    const calculatedTotal = cart.reduce((s, it) => {
+      const price = it.price || 0;
+      const quantity = it.quantity || it.cnt || 1;
+      const itemTotal = price * quantity;
+      console.log('💰 총액 계산:', {
+        item: it.name,
+        price: price,
+        quantity: quantity,
+        itemTotal: itemTotal
+      });
+      return s + itemTotal;
+    }, 0);
+    
+    console.log('💰 최종 총액:', calculatedTotal);
+    return calculatedTotal;
+  }, [cart]);
+
+  const openSelect = (item) => {
+    const needsTemp = item.options && item.options.temperature;
+    const isCoffee = item.options && (item.options.shot || item.options.milk);
+    
     setPopup({
-      id: m.id,
-      name: m.name,
-      unitPrice: m.price,
+      id: item.id,
+      name: item.name,
+      unitPrice: item.price,
       cnt: 1,
       temp: needsTemp ? "" : "",
       needsTemp,
-      isCoffee: [1,2,3].includes(m.id),
+      isCoffee,
       size: "",
       shot: "",
       sweetness: "",
-      milk: ""
+      milk: "",
+      options: item.options || {},
+      defaultOptions: item.defaultOptions || {}
     });
   };
 
@@ -94,17 +191,18 @@ export default function MenuPage() {
     if (popup.isCoffee && (!popup.size || !popup.shot || !popup.sweetness || !popup.milk)) return;
     if (cart.length >= 3) return;
 
+    const selectedOptions = {
+      temperature: popup.temp || "",
+      size: popup.size || "",
+      shot: popup.shot || "",
+      sweetness: popup.sweetness || "",
+      milk: popup.milk || ""
+    };
+
     const existsIdx = cart.findIndex(
       (c) =>
         c.id === popup.id &&
-        c.temp === (popup.temp || "") &&
-        JSON.stringify(c.options || {}) === JSON.stringify({
-          temperature: popup.temp || "",
-          size: popup.size || "",
-          shot: popup.shot || "",
-          sweetness: popup.sweetness || "",
-          milk: popup.milk || ""
-        })
+        JSON.stringify(c.options || {}) === JSON.stringify(selectedOptions)
     );
 
     if (existsIdx >= 0) {
@@ -120,13 +218,7 @@ export default function MenuPage() {
           price: popup.unitPrice,
           cnt: popup.cnt,
           temp: popup.temp || "",
-          options: {
-            temperature: popup.temp || "",
-            size: popup.size || "",
-            shot: popup.shot || "",
-            sweetness: popup.sweetness || "",
-            milk: popup.milk || ""
-          }
+          options: selectedOptions
         }
       ]);
     }
@@ -135,12 +227,23 @@ export default function MenuPage() {
 
   const cartMinus = (idx) => {
     const next = [...cart];
-    if (next[idx].cnt > 1) next[idx].cnt -= 1;
+    const currentQuantity = next[idx].quantity || next[idx].cnt || 1;
+    if (currentQuantity > 1) {
+      if (next[idx].quantity !== undefined) {
+        next[idx].quantity -= 1;
+      } else {
+        next[idx].cnt -= 1;
+      }
+    }
     setCart(next);
   };
   const cartPlus = (idx) => {
     const next = [...cart];
-    next[idx].cnt += 1;
+    if (next[idx].quantity !== undefined) {
+      next[idx].quantity += 1;
+    } else {
+      next[idx].cnt += 1;
+    }
     setCart(next);
   };
   const cartDelete = (idx) => {
@@ -164,7 +267,7 @@ export default function MenuPage() {
       id: c.id,
       name: c.name,                 // 카트표시명 유지 (옵션은 별도 표시되므로 안전)
       price: Number(c.price || 0),  // 단가
-      cnt: Number(c.cnt || 1),      // 수량
+      cnt: Number(c.quantity || c.cnt || 1),      // 수량
       options: {
         temperature: toLower(c.options?.temperature || c.temp || ""),
         size:        toLower(c.options?.size || ""),
@@ -177,7 +280,47 @@ export default function MenuPage() {
     navigate("/payment", { state: { items } });
   };
 
-  const list = CATEGORIES[tabIdx].ids.map((id) => MENU[id]);
+  // 로딩 중이거나 메뉴 데이터가 없으면 로딩 표시
+  if (loading) {
+    return (
+      <div className="wrap">
+        <div className="inner">
+          <header>
+            <a href="#home" className="link_home"><span className="ico_cafe">홈으로</span></a>
+            <h1>CQC CAFE</h1>
+          </header>
+          <main>
+            <div style={{ textAlign: 'center', padding: '50px' }}>
+              <h2>메뉴를 불러오는 중...</h2>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러가 있거나 메뉴 데이터가 없으면 에러 표시
+  if (error || !menuData || !menuData.categories) {
+    return (
+      <div className="wrap">
+        <div className="inner">
+          <header>
+            <a href="#home" className="link_home"><span className="ico_cafe">홈으로</span></a>
+            <h1>CQC CAFE</h1>
+          </header>
+          <main>
+            <div style={{ textAlign: 'center', padding: '50px' }}>
+              <h2>메뉴를 불러올 수 없습니다</h2>
+              <p>{error || '알 수 없는 오류가 발생했습니다.'}</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCategory = menuData.categories[tabIdx];
+  const currentItems = currentCategory ? currentCategory.items : [];
 
   return (
     <div className="wrap">
@@ -190,15 +333,15 @@ export default function MenuPage() {
         <main>
           <div className="tab_container">
             <ul role="tablist" className="tab_cafe">
-              {CATEGORIES.map((c, i) => (
-                <li role="presentation" key={c.key}>
+              {menuData.categories.map((category, i) => (
+                <li role="presentation" key={category.id}>
                   <a
                     href="#tab"
                     role="tab"
                     aria-selected={i===tabIdx ? "true":"false"}
                     onClick={(e)=>{e.preventDefault(); setTabIdx(i);}}
                   >
-                    {c.key}
+                    {category.name}
                   </a>
                 </li>
               ))}
@@ -207,18 +350,18 @@ export default function MenuPage() {
             <div className="tab_panel on">
               <div className="cont_menus">
                 <ul className="list_menus">
-                  {list.map((m)=>(
-                    <li key={m.id}>
+                  {currentItems.map((item)=>(
+                    <li key={item.id}>
                       <a
                         href="#item"
                         className="link_item"
-                        data-id={m.id}
-                        data-price={m.price}
-                        onClick={(e)=>{e.preventDefault(); openSelect(m.id);}}
+                        data-id={item.id}
+                        data-price={item.price}
+                        onClick={(e)=>{e.preventDefault(); openSelect(item);}}
                       >
-                        <img src={IMG(m.id)} className="img_drink" alt="" />
-                        <strong className="tit_name">{m.name}</strong>
-                        <div className="txt_price">{fmt(m.price)}원</div>
+                        <img src={`${process.env.PUBLIC_URL}${item.image}`} className="img_drink" alt={item.name} />
+                        <strong className="tit_name">{item.name}</strong>
+                        <div className="txt_price">{fmt(item.price)}원</div>
                       </a>
                     </li>
                   ))}
@@ -250,10 +393,21 @@ export default function MenuPage() {
                       <li key={`${c.id}-${c.temp}-${i}`}>
                         <span className="ico_cafe ico_default"></span>
                         <div className="item_menus" data-id={`id${c.id}`} data-price={c.price}>
-                          <img src={IMG(c.id)} className="img_menus" alt="" />
+                          <img src={`${process.env.PUBLIC_URL}/menu_images/${c.id === 'americano' ? 'ico_drink1.png' : 
+                            c.id === 'cafelatte' ? 'ico_drink2.png' :
+                            c.id === 'mocha' ? 'cafemoca.png' :
+                            c.id === 'grapefruit_ade' ? 'grapefruit_ade.png' :
+                            c.id === 'mango_ade' ? 'mango_ade.png' :
+                            c.id === 'kiwi_juice' ? 'kiwi_juice.png' :
+                            c.id === 'peppermint_tea' ? 'peppermint_tea.png' :
+                            c.id === 'chamomile_tea' ? 'Chamomile_tea.png' :
+                            c.id === 'peach_tea' ? 'peach_tea.png' :
+                            c.id === 'cream_rollcake' ? 'cream_rollcake.png' :
+                            c.id === 'cookie_waffle' ? 'cookie_wafle.png' :
+                            c.id === 'basic_waffle' ? 'basic_wafle.png' : 'ico_drink1.png'}`} className="img_menus" alt={c.name} />
                           <div className="info_count">
                             <a href="#m" className="ico_cafe ico_minus" onClick={(e)=>{e.preventDefault(); cartMinus(i);}}>-</a>
-                            <div className="txt_count">{c.cnt}</div>
+                            <div className="txt_count">{c.quantity || c.cnt || 1}</div>
                             <a href="#p" className="ico_cafe ico_plus" onClick={(e)=>{e.preventDefault(); cartPlus(i);}}>+</a>
                           </div>
                           <a href="#d" className="btn_delete" onClick={(e)=>{e.preventDefault(); cartDelete(i);}}><span className="ico_cafe">삭제</span></a>
@@ -293,7 +447,18 @@ export default function MenuPage() {
               <div className="popup_body">
                 <div className="info_menu">
                   <div className="item_menus">
-                    <img src={IMG(popup.id)} className="img_menus" alt="" />
+                    <img src={`${process.env.PUBLIC_URL}/menu_images/${popup.id === 'americano' ? 'ico_drink1.png' : 
+                      popup.id === 'cafelatte' ? 'ico_drink2.png' :
+                      popup.id === 'mocha' ? 'cafemoca.png' :
+                      popup.id === 'grapefruit_ade' ? 'grapefruit_ade.png' :
+                      popup.id === 'mango_ade' ? 'mango_ade.png' :
+                      popup.id === 'kiwi_juice' ? 'kiwi_juice.png' :
+                      popup.id === 'peppermint_tea' ? 'peppermint_tea.png' :
+                      popup.id === 'chamomile_tea' ? 'Chamomile_tea.png' :
+                      popup.id === 'peach_tea' ? 'peach_tea.png' :
+                      popup.id === 'cream_rollcake' ? 'cream_rollcake.png' :
+                      popup.id === 'cookie_waffle' ? 'cookie_wafle.png' :
+                      popup.id === 'basic_waffle' ? 'basic_wafle.png' : 'ico_drink1.png'}`} className="img_menus" alt={popup.name} />
                     <div className="info_count">
                       <strong className="tit_menus">{popup.name}</strong>
                       <a href="#m" className="ico_cafe ico_minus" onClick={(e)=>{e.preventDefault(); changeCnt(-1);}}>-</a>
@@ -383,6 +548,17 @@ export default function MenuPage() {
             </div>
           )}
         </main>
+      </div>
+      
+      {/* 오른쪽 하단 고정 음성 버튼 */}
+      <div style={{
+        position: 'fixed',
+        bottom: '30px',
+        right: '30px',
+        zIndex: 1000,
+        pointerEvents: 'auto'
+      }}>
+        <VoiceButton />
       </div>
     </div>
   );

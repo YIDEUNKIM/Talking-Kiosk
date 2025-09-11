@@ -14,19 +14,19 @@ const AppContainer = styled.div`
 
 function App() {
   return (
-    <VoiceProvider>
-      <AppContainer>
-        <Router>
+    <Router>  {/* ✅ Router가 가장 바깥으로 이동 */}
+      <VoiceProvider>  {/* ✅ VoiceProvider가 Router 안쪽에 위치 */}
+        <AppContainer>
           <Routes>
             <Route path="/" element={<MenuPage />} />
             <Route path="/item/:itemId" element={<ItemDetailPage />} />
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/receipt" element={<ReceiptPage />} />
           </Routes>
-        </Router>
-      </AppContainer>
-    </VoiceProvider>
+        </AppContainer>
+      </VoiceProvider>
+    </Router>
   );
 }
 
-export default App; 
+export default App;
